@@ -39,11 +39,15 @@ export async function middleware(request: NextRequest) {
 
   if (isProtectedPath && !request.nextUrl.pathname.startsWith('/banned')) {
     
+    const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+    const proto = request.headers.get('x-forwarded-proto') || 'https';
+    const origin = `${proto}://${host}`;
+
     // Check Profile Ban
     if (user) {
       const { data: profile } = await supabase.from('profiles').select('is_banned').eq('id', user.id).maybeSingle();
       if (profile?.is_banned) {
-        return NextResponse.redirect(new URL('/banned', request.url));
+        return NextResponse.redirect(new URL('/banned', origin));
       }
     }
 
@@ -52,7 +56,7 @@ export async function middleware(request: NextRequest) {
     if (ip) {
       const { data: ban } = await supabase.from('bans').select('id').eq('target_value', ip).eq('type', 'ip').maybeSingle();
       if (ban) {
-        return NextResponse.redirect(new URL('/banned', request.url));
+        return NextResponse.redirect(new URL('/banned', origin));
       }
     }
   }
