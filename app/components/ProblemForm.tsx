@@ -75,13 +75,17 @@ export default function ProblemForm({
 
       // Standardize file info extraction
       const getFileDetails = (name: string) => {
-        // Match numbers: 1.in, input1.txt, test_01.out, etc.
+        const lower = name.toLowerCase();
+        
+        // Match numbers: 1.in, input1.txt, test_01.out, sample1.txt, etc.
         const match = name.match(/(\d+)/);
         if (!match) return null;
         const id = match[1];
-        const isInput = name.toLowerCase().includes('in') || name.toLowerCase().includes('input');
-        const isOutput = name.toLowerCase().includes('out') || name.toLowerCase().includes('output');
-        const isSample = name.toLowerCase().includes('sample') || name.toLowerCase().includes('example');
+
+        // Improved patterns
+        const isInput = lower.includes('in') || lower.endsWith('.in') || lower.includes('input');
+        const isOutput = lower.includes('out') || lower.includes('output') || lower.includes('ans') || lower.includes('sol') || lower.endsWith('.out') || lower.endsWith('.ans');
+        const isSample = lower.includes('sample') || lower.includes('example');
         
         return { id, isInput, isOutput, isSample };
       };
