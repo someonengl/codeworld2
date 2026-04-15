@@ -40,57 +40,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
     .eq('author_id', profile.id)
     .eq('status', 'Approved');
 
-  // Fetch some recent submissions to show in the list
-  const { data: recentSubs } = await supabase
-    .from('submissions')
-    .select('id, status, created_at, problem_id')
-    .eq('student_id', profile.id)
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  // Fetch weekly
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  
-  const { data: weekSubsData } = await supabase
-    .from('submissions')
-    .select('created_at')
-    .eq('student_id', profile.id)
-    .gte('created_at', sevenDaysAgo.toISOString());
-
-  const dayCounts = [0, 0, 0, 0, 0, 0, 0];
-  if (weekSubsData) {
-     weekSubsData.forEach((sub: any) => {
-       const d = new Date(sub.created_at).getDay();
-       const index = d === 0 ? 6 : d - 1; // Mon=0, Sun=6
-       dayCounts[index]++;
-     });
-  }
-  const maxDayCount = Math.max(...dayCounts, 1);
-  const weekHeights = dayCounts.map(c => Math.round((c / maxDayCount) * 100));
-
-  // Fetch languages
   const { data: allSubsLang } = await supabase
     .from('submissions')
-    .select('language_id')
+    .select('id')
     .eq('student_id', profile.id);
 
   const totalSubmissions = allSubsLang?.length || 0;
-
-  const langCounts = { cpp: 0, python: 0, java: 0, other: 0 };
-  if (allSubsLang) {
-    allSubsLang.forEach((sub: any) => {
-       const lang = sub.language_id;
-       if ([50, 52, 53, 54, 75, 76].includes(lang)) langCounts.cpp++;
-       else if ([71, 70, 100].includes(lang)) langCounts.python++;
-       else if ([62, 63].includes(lang)) langCounts.java++;
-       else langCounts.other++;
-    });
-  }
-  const hasSubmissions = totalSubmissions > 0;
-  const cppPct = hasSubmissions ? Math.round((langCounts.cpp / totalSubmissions) * 100) : 33;
-  const pyPct = hasSubmissions ? Math.round((langCounts.python / totalSubmissions) * 100) : 33;
-  const javaPct = hasSubmissions ? Math.round((langCounts.java / totalSubmissions) * 100) : 34;
 
 
   return (
@@ -139,73 +94,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                  ))}
               </div>
 
-               {/* Middle Charts Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {/* Bar Chart Panel */}
-                 <div className="bg-white/[0.02] backdrop-blur-md border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] p-8 h-80 flex flex-col animate-fade-in delay-300 group hover:border-white/[0.06] transition-all duration-500" style={{ borderRadius: '1.5rem' }}>
-                    <div className="flex justify-between items-center mb-8">
-                       <h3 className="text-zinc-500 font-bold uppercase tracking-widest text-[11px] group-hover:text-zinc-400 transition-colors">Weekly Submissions</h3>
-                       <button className="text-zinc-600 hover:text-white transition-colors"><MoreHorizontal className="w-5 h-5"/></button>
-                    </div>
-                    {/* Fake Chart Visualization styling from screenshot */}
-                    <div className="flex-1 flex items-end justify-between gap-3 pb-3 border-b border-white/[0.06]">
-                       {weekHeights.map((h, i) => (
-                          <div key={i} className="w-full flex justify-center group h-full items-end">
-                             <div 
-                                style={{ height: `${Math.max(h, 5)}%` }} 
-                                className={`w-full max-w-[2rem] rounded-sm transition-all duration-300 ${i === new Date().getDay() - 1 || (new Date().getDay() === 0 && i === 6) ? 'bg-[#10b981]' : 'bg-white/10 group-hover:bg-white/20'}`}
-                             ></div>
-                          </div>
-                       ))}
-                    </div>
-                    <div className="flex justify-between text-[11px] text-zinc-400 font-semibold px-3 pt-4">
-                       <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-                    </div>
-                 </div>
-
-                 {/* Donut Chart Panel */}
-                 <div className="bg-white/[0.02] backdrop-blur-md border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] p-8 h-80 flex flex-col animate-fade-in delay-400 group hover:border-white/[0.06] transition-all duration-500" style={{ borderRadius: '1.5rem' }}>
-                    <div className="flex justify-between items-center mb-6">
-                       <h3 className="text-zinc-500 font-bold uppercase tracking-widest text-[11px] group-hover:text-zinc-400 transition-colors">Active Languages</h3>
-                       <button className="text-zinc-600 hover:text-white transition-colors"><MoreHorizontal className="w-5 h-5"/></button>
-                    </div>
-                    <div className="flex-1 flex flex-col 2xl:flex-row items-center justify-center gap-8">
-                       {/* Pure CSS SVG Donut */}
-                       <div className="relative w-36 h-36 shrink-0">
-                         <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full drop-shadow-xl">
-                           <circle cx="50" cy="50" r="35" fill="none" stroke="#ffffff08" strokeWidth="18" />
-                           {/* C++ (Green) */}
-                           <circle cx="50" cy="50" r="35" fill="none" stroke="#10b981" strokeWidth="18" strokeDasharray="219.9" strokeDashoffset={219.9 - (cppPct/100)*219.9} />
-                           {/* Python (Orange) */}
-                           <circle cx="50" cy="50" r="35" fill="none" stroke="#ff5a36" strokeWidth="18" strokeDasharray="219.9" strokeDashoffset={219.9 - (pyPct/100)*219.9} className="origin-center" style={{ transform: `rotate(${cppPct * 3.6}deg)` }} />
-                           {/* Java (Blue) */}
-                           <circle cx="50" cy="50" r="35" fill="none" stroke="#6366f1" strokeWidth="18" strokeDasharray="219.9" strokeDashoffset={219.9 - (javaPct/100)*219.9} className="origin-center" style={{ transform: `rotate(${(cppPct + pyPct) * 3.6}deg)` }} />
-                         </svg>
-                         {/* Donut inner hole overlay */}
-                         <div className="absolute inset-0 m-auto w-[46px] h-[46px] rounded-full bg-[#343437] shadow-inner flex items-center justify-center">
-                         </div>
-                       </div>
-                       
-                       <div className="flex flex-col gap-4 w-full">
-                          <div className="flex items-center gap-3 text-[13px]">
-                             <div className="w-2.5 h-2.5 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]"></div>
-                             <span className="text-zinc-300 font-medium flex-1">C++</span>
-                             <span className="text-white font-semibold">{cppPct}%</span>
-                          </div>
-                          <div className="flex items-center gap-3 text-[13px]">
-                             <div className="w-2.5 h-2.5 rounded-full bg-[#ff5a36] shadow-[0_0_8px_#ff5a36]"></div>
-                             <span className="text-zinc-300 font-medium flex-1">Python</span>
-                             <span className="text-white font-semibold">{pyPct}%</span>
-                          </div>
-                          <div className="flex items-center gap-3 text-[13px]">
-                             <div className="w-2.5 h-2.5 rounded-full bg-[#6366f1] shadow-[0_0_8px_#6366f1]"></div>
-                             <span className="text-zinc-300 font-medium flex-1">Java</span>
-                             <span className="text-white font-semibold">{javaPct}%</span>
-                          </div>
-                       </div>
-                    </div>
-                 </div>
-              </div>
 
 
            </div>
@@ -238,10 +126,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                        <span className="text-white font-semibold">{role}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                       <span className="text-zinc-400 font-medium tracking-wide">Location</span>
-                       <span className="text-white font-semibold">United States, New York</span>
-                    </div>
-                    <div className="flex justify-between items-center">
                        <span className="text-zinc-400 font-medium tracking-wide">Joined Platform</span>
                        <span className="text-white font-semibold">{new Date(profile.created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                     </div>
@@ -249,40 +133,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                  </div>
               </div>
 
-              {/* Recent Activity List */}
-              <div className="bg-white/[0.02] backdrop-blur-md border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] p-8 flex-1 flex flex-col animate-fade-in delay-500 group hover:border-white/[0.06] transition-all duration-500" style={{ borderRadius: '1.5rem' }}>
-                 <div className="flex justify-between items-center mb-8">
-                    <h3 className="text-zinc-500 font-bold uppercase tracking-widest text-[11px] group-hover:text-zinc-400 transition-colors">Recent Solves</h3>
-                    <button className="flex items-center gap-1 text-[10px] text-zinc-400 hover:text-white transition-colors rounded-full font-bold tracking-widest uppercase">
-                       VIEW ALL <ArrowUpRight className="w-3 h-3" />
-                    </button>
-                 </div>
-
-                 <div className="flex flex-col gap-5 flex-1">
-                    {recentSubs && recentSubs.length > 0 ? (
-                       recentSubs.map((sub: any, i: number) => (
-                         <div key={i} className="flex gap-4 items-center group cursor-pointer hover:bg-white/[0.03] p-2.5 -mx-2.5 rounded-2xl transition-all">
-                            <div className="w-[52px] h-[52px] rounded-2xl bg-gradient-to-br from-[#1c1c1e] to-[#2a2a2c] shadow-inner border border-white/5 flex items-center justify-center shrink-0 overflow-hidden relative">
-                               <div className="absolute inset-0 opacity-40 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#10b981]/40 via-transparent to-transparent"></div>
-                               <Code2 className="w-6 h-6 text-[#10b981] relative z-10 drop-shadow-md" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                               <p className="text-[15px] font-bold text-zinc-100 truncate mb-1 bg-clip-text group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-zinc-400">Problem #{sub.problem_id}</p>
-                               <div className="flex items-center gap-2">
-                                 <span className="text-[10px] text-[#10b981] font-bold tracking-wide uppercase">{sub.status} ↗</span>
-                               </div>
-                            </div>
-
-                         </div>
-                       ))
-                    ) : (
-                       <div className="flex-1 flex flex-col items-center justify-center text-zinc-600">
-                          <Code2 className="w-12 h-12 mb-3 opacity-20" />
-                          <p className="text-[13px] font-medium tracking-wide">No recent activity</p>
-                       </div>
-                    )}
-                 </div>
-              </div>
 
            </div>
         </div>
