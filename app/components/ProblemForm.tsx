@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Trash2, Save, X } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, Trash2, Save, X, Upload, FileArchive } from "lucide-react";
+import JSZip from "jszip";
 
 export interface TestCase {
   input: string;
@@ -45,6 +46,7 @@ export default function ProblemForm({
     { input: "", expected_output: "", is_sample: true }
   ]);
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addTestCase = () => {
     setTestCases([...testCases, { input: "", expected_output: "", is_sample: false }]);
@@ -58,6 +60,69 @@ export default function ProblemForm({
     const updated = [...testCases];
     (updated[idx] as any)[field] = value;
     setTestCases(updated);
+  };
+
+  const handleZipUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    try {
+      const zip = new JSZip();
+      const content = await zip.loadAsync(file);
+      
+      const files: { [key: string]: { input?: string, output?: string, is_sample: boolean } } = {};
+
+      // Standardize file info extraction
+      const getFileDetails = (name: string) => {
+        // Match numbers: 1.in, input1.txt, test_01.out, etc.
+        const match = name.match(/(\d+)/);
+        if (!match) return null;
+        const id = match[1];
+        const isInput = name.toLowerCase().includes('in') || name.toLowerCase().includes('input');
+        const isOutput = name.toLowerCase().includes('out') || name.toLowerCase().includes('output');
+        const isSample = name.toLowerCase().includes('sample') || name.toLowerCase().includes('example');
+        
+        return { id, isInput, isOutput, isSample };
+      };
+
+      for (const filename of Object.keys(content.files)) {
+        if (content.files[filename].dir) continue;
+        
+        const details = getFileDetails(filename);
+        if (!details) continue;
+
+        if (!files[details.id]) files[details.id] = { is_sample: false };
+        if (details.isSample) files[details.id].is_sample = true;
+
+        const text = await content.files[filename].async("text");
+        if (details.isInput) files[details.id].input = text;
+        if (details.isOutput) files[details.id].output = text;
+      }
+
+      const newTestCases: TestCase[] = Object.values(files)
+        .filter(f => f.input !== undefined || f.output !== undefined)
+        .map(f => ({
+          input: f.input || "",
+          expected_output: f.output || "",
+          is_sample: f.is_sample
+        }));
+
+      if (newTestCases.length > 0) {
+        if (confirm(`Detected ${newTestCases.length} test cases in ZIP. Append to existing or replace? \n(Cancel = Append, OK = Replace)`)) {
+          setTestCases(newTestCases);
+        } else {
+          setTestCases([...testCases, ...newTestCases]);
+        }
+      } else {
+        alert("No valid test cases found in ZIP. Ensure files are named like '1.in' / '1.out' or 'input1.txt' / 'output1.txt'.");
+      }
+    } catch (err: any) {
+      alert("Error reading ZIP: " + err.message);
+    } finally {
+      setLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   const internalSubmit = async (e: React.FormEvent) => {
@@ -152,13 +217,30 @@ export default function ProblemForm({
         <div className="space-y-4">
           <div className="flex items-center justify-between pb-1 border-b border-zinc-800/50">
             <label className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest font-bold">Test Cases</label>
-            <button 
-              type="button" 
-              onClick={addTestCase}
-              className="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold uppercase tracking-tighter flex items-center gap-1"
-            >
-              <Plus className="w-3 h-3" /> Add Case
-            </button>
+            <div className="flex items-center gap-3">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleZipUpload} 
+                className="hidden" 
+                accept=".zip"
+              />
+              <button 
+                type="button" 
+                onClick={() => fileInputRef.current?.click()}
+                className="text-[10px] text-zinc-400 hover:text-white font-bold uppercase tracking-tighter flex items-center gap-1 transition-colors"
+                title="Upload ZIP containing inputX.txt / outputX.txt"
+              >
+                <FileArchive className="w-3 h-3" /> Import ZIP
+              </button>
+              <button 
+                type="button" 
+                onClick={addTestCase}
+                className="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold uppercase tracking-tighter flex items-center gap-1 transition-colors"
+              >
+                <Plus className="w-3 h-3" /> Add Case
+              </button>
+            </div>
           </div>
 
           <div className="max-h-[460px] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
@@ -167,14 +249,16 @@ export default function ProblemForm({
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-mono text-zinc-600 uppercase">Case #{idx + 1}</span>
                   <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-2 text-[10px] text-zinc-500 cursor-pointer hover:text-zinc-300 transition-colors uppercase font-bold">
+                    <label className="flex items-center gap-2 text-[10px] cursor-pointer hover:text-zinc-300 transition-colors uppercase font-bold">
                       <input 
                         type="checkbox"
                         checked={tc.is_sample}
                         onChange={(e) => updateTestCase(idx, "is_sample", e.target.checked)}
                         className="accent-emerald-500 w-3 h-3 rounded border-zinc-800"
                       />
-                      Sample
+                      <span className={tc.is_sample ? "text-emerald-400" : "text-zinc-500 opacity-50"}>
+                        {tc.is_sample ? "Sample" : "Hidden"}
+                      </span>
                     </label>
                     {testCases.length > 1 && (
                       <button 
