@@ -98,20 +98,13 @@ export default function LoginPage() {
           <div className="flex-1 h-px bg-zinc-700"></div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 w-full">
+        <div className="w-full">
           <button 
             type="button"
             onClick={() => handleOAuth('google')}
-            className="flex-1 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-zinc-800 text-white font-semibold px-4 py-2.5 rounded-lg transition-colors text-sm hover:border-zinc-600"
+            className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-zinc-800 text-white font-semibold px-4 py-2.5 rounded-lg transition-colors text-sm hover:border-zinc-600"
           >
-            Google
-          </button>
-          <button 
-            type="button"
-            onClick={() => handleOAuth('github')}
-            className="flex-1 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-zinc-800 text-white font-semibold px-4 py-2.5 rounded-lg transition-colors text-sm hover:border-zinc-600"
-          >
-            GitHub
+            Sign in with Google
           </button>
         </div>
 
