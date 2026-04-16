@@ -159,7 +159,7 @@ export default function SubmitClient({
   }, {} as Record<string, SubmissionRecord[]>);
 
   const uniqueStudents = Object.values(grouped).map(subs => {
-    const bestStatus = subs.some(s => s.status === 'Accepted') ? 'Accepted' : subs[0].status;
+    const bestStatus = subs.some(s => s.status === 'AC') ? 'AC' : subs[0].status;
     return { 
       student_id: subs[0].student_id, 
       bestStatus, 
@@ -438,8 +438,8 @@ export default function SubmitClient({
                       <div className="flex justify-between items-start mb-1">
                         <span className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">@{stu.profile.username || "anonymous"}</span>
                         <span className={`text-[9px] px-1.5 py-0.5 rounded border uppercase font-mono tracking-tighter
-                          ${stu.bestStatus === 'Accepted' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                          {stu.bestStatus === 'Accepted' ? 'AC' : stu.bestStatus}
+                          ${stu.bestStatus === 'AC' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                          {stu.bestStatus === 'AC' ? 'AC' : stu.bestStatus}
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-zinc-600 font-mono">
@@ -463,8 +463,8 @@ export default function SubmitClient({
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-2">
                             <span className={`text-[9px] w-6 text-center py-0.5 rounded border uppercase font-mono tracking-tighter
-                              ${sub.status === 'Accepted' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                              {sub.status === 'Accepted' ? 'AC' : sub.status}
+                              ${sub.status === 'AC' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                              {sub.status === 'AC' ? 'AC' : sub.status}
                             </span>
                             <span className="text-[10px] text-zinc-400 font-mono">
                               {new Date(sub.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -500,8 +500,8 @@ export default function SubmitClient({
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <span className={`text-[9px] w-6 text-center py-0.5 rounded border uppercase font-mono tracking-tighter
-                          ${sub.status === 'Accepted' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                          {sub.status === 'Accepted' ? 'AC' : sub.status}
+                          ${sub.status === 'AC' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                          {sub.status === 'AC' ? 'AC' : sub.status}
                         </span>
                         <span className="text-[10px] text-zinc-400 font-mono">
                           {new Date(sub.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

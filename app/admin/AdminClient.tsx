@@ -339,7 +339,7 @@ export default function AdminClient({ userId }: { userId: string }) {
                         <div className="text-[10px] text-zinc-600 font-mono">Problem: {sub.problems?.id.substring(0, 8)}...</div>
                       </div>
                     </div>
-                    <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded ${sub.status === 'Accepted' ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>
+                    <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded ${sub.status === 'AC' ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>
                       {sub.status}
                     </span>
                   </div>
@@ -554,7 +554,7 @@ export default function AdminClient({ userId }: { userId: string }) {
               </h2>
               <div className="space-y-3">
                 {problems.map(p => (
-                  <div key={p.id} className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg group">
+                   <div key={p.id} className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg group">
                     <div className="flex justify-between items-start">
                        <div>
                         <div className="text-sm font-bold text-white mb-1">
