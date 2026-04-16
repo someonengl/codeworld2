@@ -17,8 +17,8 @@ const heroContainer: Variants = {
 };
 
 const heroItem: Variants = {
-  hidden: { opacity: 0, y: 40, filter: "blur(8px)" },
-  show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } },
+  hidden: { opacity: 0, y: 40 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } },
 };
 
 const bentoContainer: Variants = {
@@ -67,7 +67,7 @@ const FEATURES = [
     iconColor: "text-purple-400",
     glow: "rgba(168,85,247,0.12)",
     title: "Classroom Hubs",
-    desc: "Strictly isolated learning environments protected by multi-layered RBAC constraints. Secure your data.",
+    desc: "Strictly isolated learning environments with professional group management and access controls.",
   },
   {
     col: "col-span-1 md:col-span-2",
@@ -85,16 +85,16 @@ export default function LandingClient({ user }: Props) {
   return (
     <div className="flex flex-col flex-1 w-full relative">
       {/* Background */}
-      <div className="fixed inset-0 z-0 bg-[#050505]">
+      <div className="fixed inset-0 z-0 bg-[#050505] overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
         <motion.div
-          className="absolute top-0 right-0 w-[900px] h-[900px] bg-indigo-500/8 rounded-full blur-[160px] pointer-events-none"
+          className="absolute top-0 right-0 w-[900px] h-[900px] bg-indigo-500/8 rounded-full blur-[80px] pointer-events-none will-change-transform"
           animate={{ scale: [1, 1.05, 1], opacity: [0.4, 0.6, 0.4] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
           style={{ translateX: "30%", translateY: "-30%" }}
         />
         <motion.div
-          className="absolute bottom-0 left-0 w-[700px] h-[700px] bg-emerald-500/5 rounded-full blur-[140px] pointer-events-none"
+          className="absolute bottom-0 left-0 w-[700px] h-[700px] bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none will-change-transform"
           animate={{ scale: [1, 1.08, 1], opacity: [0.3, 0.5, 0.3] }}
           transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 2 }}
           style={{ translateX: "-30%", translateY: "30%" }}

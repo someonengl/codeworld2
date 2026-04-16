@@ -21,8 +21,8 @@ function isRateLimited(key: string): boolean {
 // Wandbox compiler names — https://wandbox.org/api/list.json
 // Completely free, no API key, no account needed.
 const WANDBOX_COMPILER: Record<string, string> = {
-  cpp:    "gcc-head",         // Back to GCC for bits/stdc++.h support
-  c:      "gcc-head-c",       // Back to GCC for consistency
+  cpp:    "gcc-13.2.0",       // Stable GCC version
+  c:      "gcc-13.2.0-c",     // Stable GCC version
   python: "cpython-3.12.5",   // Python 3.12
   rust:   "rust-head",        // Rust latest
   go:     "go-head",          // Go latest
@@ -94,8 +94,9 @@ async function runOnWandbox(
   timeLimitMs?: number
 ): Promise<{ status: string; stdout: string; stderr: string; time_ms: number }> {
   const controller = new AbortController();
-  // Compilation + Network Overhead can take up to 15-20s for large C++ headers on Wandbox.
-  const effectiveTimeout = (timeLimitMs || 2000) + 18000; 
+  // Compilation + Network Overhead can take 15-20s for large C++ headers on Wandbox.
+  // Bumped buffer to 25s ensure students don't get false TLEs on cold starts.
+  const effectiveTimeout = (timeLimitMs || 2000) + 25000; 
   const timeout = setTimeout(() => controller.abort(), effectiveTimeout); 
 
 

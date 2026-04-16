@@ -515,13 +515,13 @@ export default function SubmitClient({
             </div>
           )}
 
-          {/* Full Test Suite (Archive or Teacher view) */}
-          {(isTeacher || isArchive) && (
+          {/* Full Test Suite (Teacher view only) */}
+          {isTeacher && (
             <div className="mt-8 border-t border-zinc-800 pt-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2 text-xs font-mono text-amber-400 uppercase tracking-widest font-bold">
                   <FlaskConical className="w-4 h-4 text-amber-500" />
-                  Full Test Suite ({testCases.length})
+                  Test Case Details ({testCases.length})
                 </div>
               </div>
               
@@ -563,10 +563,10 @@ export default function SubmitClient({
                 </div>
                 <div className="text-left">
                   <div className="text-[10px] uppercase tracking-widest font-bold text-emerald-400/80">
-                    {allowViewTestcases ? "Validating Cases" : "Sample Cases"}
+                    {allowViewTestcases ? "Test Case Inputs" : "Example Cases"}
                   </div>
                   <div className="text-[9px] font-mono text-zinc-600">
-                    {testCases.length} Total Units
+                    {testCases.length} Cases Provided
                   </div>
                 </div>
               </div>

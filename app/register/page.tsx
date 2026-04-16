@@ -117,8 +117,8 @@ export default function RegisterPage() {
           <div className="mx-auto bg-zinc-900 border border-zinc-800 p-3 rounded-full w-fit mb-4 text-emerald-400">
             <ShieldAlert className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Initialize Identity</h1>
-          <p className="text-zinc-400 text-sm">Choose your handle and join the platform.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-white">Create Your Account</h1>
+          <p className="text-zinc-400 text-sm">Join the platform and start your coding journey.</p>
         </div>
 
         <form onSubmit={handleEmailRegister} className="flex flex-col gap-4 w-full">
@@ -136,7 +136,7 @@ export default function RegisterPage() {
               <input
                 id="username-input"
                 type="text"
-                placeholder="your_handle"
+                placeholder="Username"
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -200,7 +200,7 @@ export default function RegisterPage() {
         </div>
 
         <p className="text-center text-xs text-zinc-500">
-          Already registered?{" "}
+          Already have an account?{" "}
           <Link href="/login" className="text-[#00ff00] hover:underline underline-offset-4">Login here.</Link>
         </p>
       </div>

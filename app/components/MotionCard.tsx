@@ -53,11 +53,11 @@ export default function MotionCard({
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={tilt ? { rotateX, rotateY, transformStyle: "preserve-3d" } : {}}
-      className={`relative overflow-hidden ${className}`}
+      className={`relative overflow-hidden will-change-transform ${className}`}
     >
       {/* Mouse-tracking glow spotlight */}
       <motion.div
-        className="pointer-events-none absolute inset-0 z-0 rounded-[inherit] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        className="pointer-events-none absolute inset-0 z-0 rounded-[inherit] opacity-0 transition-opacity duration-300 group-hover:opacity-100 will-change-transform"
         style={{
           background: `radial-gradient(300px circle at ${glowX} ${glowY}, ${glowColor}, transparent 70%)`,
         }}

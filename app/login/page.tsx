@@ -54,22 +54,22 @@ export default function LoginPage() {
           <div className="mx-auto bg-zinc-900 border border-zinc-800 p-3 rounded-full w-fit mb-4 text-[#00ff00]">
             <Lock className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">System Authorized Access</h1>
-          <p className="text-zinc-400 text-sm">Enter your credentials to enter the arena.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-white">Sign In to CodeWorld</h1>
+          <p className="text-zinc-400 text-sm">Access your learning dashboard and practice area.</p>
         </div>
 
         <form onSubmit={handleEmailLogin} className="flex flex-col gap-4 w-full mt-4">
           {errorMsg && (
             <div className="text-red-400 text-xs px-3 py-2 bg-red-400/10 border border-red-400/20 rounded animate-pulse">
-              [!] Access Denied: {errorMsg}
+              [!] Sign-in Error: {errorMsg}
             </div>
           )}
           
           <div className="space-y-1">
-            <label className="text-xs font-mono text-zinc-500 uppercase font-semibold">Hacker ID / Username</label>
+            <label className="text-xs font-mono text-zinc-500 uppercase font-semibold">Username or Email</label>
             <input 
               type="text" 
-              placeholder="root or root@terminal.com" 
+              placeholder="Username" 
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -78,7 +78,7 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-mono text-zinc-500 uppercase">Passphrase</label>
+            <label className="text-xs font-mono text-zinc-500 uppercase">Password</label>
             <input 
               type="password" 
               placeholder="••••••••" 
@@ -94,14 +94,14 @@ export default function LoginPage() {
             disabled={isLoading}
             className="group w-full mt-2 bg-gradient-to-r from-emerald-500 to-[#00ff00] hover:from-emerald-400 hover:to-emerald-300 text-black font-bold px-6 py-3 rounded-lg transition-all duration-300 uppercase tracking-wider text-xs flex justify-center items-center gap-2 hover:shadow-[0_0_20px_rgba(0,255,0,0.3)] disabled:opacity-50"
           >
-            {isLoading ? "Authenticating..." : "Execute Login"}
+            {isLoading ? "Authenticating..." : "Login"}
             {!isLoading && <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
           </button>
         </form>
 
         <div className="flex items-center gap-4 w-full my-4 opacity-50">
           <div className="flex-1 h-px bg-zinc-700"></div>
-          <span className="text-xs text-zinc-400 font-mono">OAUTH PROTOCOL</span>
+          <span className="text-xs text-zinc-400 font-mono">SOCIAL PROVIDERS</span>
           <div className="flex-1 h-px bg-zinc-700"></div>
         </div>
 
@@ -116,7 +116,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center mt-4 text-xs text-zinc-500">
-          No security clearance? <Link href="/register" className="text-[#00ff00] hover:underline underline-offset-4 cursor-pointer">Register here.</Link>
+          New to the platform? <Link href="/register" className="text-[#00ff00] hover:underline underline-offset-4 cursor-pointer">Register here.</Link>
         </p>
       </div>
     </div>
