@@ -127,7 +127,7 @@ export default async function GroupHubPage({ params }: { params: Promise<{ id: s
     .from('submissions')
     .select('student_id, status, problem_id, problems!inner(group_id)')
     .eq('problems.group_id', id)
-    .eq('status', 'AC');
+    .in('status', ['AC', 'Accepted']);
 
   const solvedSet = new Set<string>();
   if (allSubmissions) {

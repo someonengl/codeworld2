@@ -55,6 +55,7 @@ export default async function DashboardPage() {
     const { data: mems } = await supabase.from('memberships').select('id, group_id, status, groups(name, join_code)').eq('student_id', user.id);
     if (mems) studentMemberships = mems;
 
+    const { data: subs } = await supabase.from('submissions').select('id').eq('student_id', user.id).in('status', ['AC', 'Accepted']);
     const { data: trans } = await supabase.from('problem_translations').select('id').eq('author_id', user.id).eq('status', 'Approved');
     
     studentStats.solved = subs?.length || 0;

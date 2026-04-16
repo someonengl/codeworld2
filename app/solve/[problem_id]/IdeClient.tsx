@@ -80,7 +80,7 @@ export default function IdeClient({
 
       // Wandbox results are in data.results[0]
       const result = data.results?.[0] || {};
-      const finalStatus = result.status === "AC" ? "Accepted" : result.status || "RE";
+      const finalStatus = result.status === "AC" ? "AC" : result.status || "RE";
 
       // Log submission to database
       await supabase.from('submissions').insert({

@@ -32,7 +32,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
     .from('submissions')
     .select('*', { count: 'exact', head: true })
     .eq('student_id', profile.id)
-    .eq('status', 'AC');
+    .in('status', ['AC', 'Accepted']);
 
   const { count: translations } = await supabase
     .from('problem_translations')

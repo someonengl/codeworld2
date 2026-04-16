@@ -339,8 +339,8 @@ export default function AdminClient({ userId }: { userId: string }) {
                         <div className="text-[10px] text-zinc-600 font-mono">Problem: {sub.problems?.id.substring(0, 8)}...</div>
                       </div>
                     </div>
-                    <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded ${sub.status === 'AC' ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>
-                      {sub.status}
+                    <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded ${(sub.status === 'AC' || sub.status === 'Accepted') ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>
+                      {sub.status === 'Accepted' ? 'AC' : sub.status}
                     </span>
                   </div>
                 ))}
