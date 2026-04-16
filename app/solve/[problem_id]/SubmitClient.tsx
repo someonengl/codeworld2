@@ -500,8 +500,8 @@ export default function SubmitClient({
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <span className={`text-[9px] w-6 text-center py-0.5 rounded border uppercase font-mono tracking-tighter
-                          ${sub.status === 'AC' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                          {sub.status === 'AC' ? 'AC' : sub.status}
+                          ${(sub.status === 'AC' || sub.status === 'Accepted') ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                          {(sub.status === 'AC' || sub.status === 'Accepted') ? 'AC' : sub.status}
                         </span>
                         <span className="text-[10px] text-zinc-400 font-mono">
                           {new Date(sub.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

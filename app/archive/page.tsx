@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
-import { Terminal, Book, User, ArrowRight, Zap, Target, Search, Plus, X } from "lucide-react";
+import { Terminal, Book, User, ArrowRight, Zap, Target, Search, Plus, X, CheckCircle2 } from "lucide-react";
 import { motion, Variants } from "framer-motion";
 import MotionCard from "@/app/components/MotionCard";
 import ProblemForm from "@/app/components/ProblemForm";
@@ -46,13 +46,15 @@ interface Problem {
 
 export default function ArchivePage() {
   const supabase = createClient();
-  const [problems, setProblems] = useState<Problem[]>([]);
+  const [solvedIds, setSolvedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isContributing, setIsContributing] = useState(false);
 
   useEffect(() => {
     async function fetchArchive() {
+      const { data: { user } } = await supabase.auth.getUser();
+
       let query = supabase
         .from('problems')
         .select(`
@@ -72,6 +74,20 @@ export default function ArchivePage() {
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (data) setProblems(data as any);
+
+      // Fetch user's solved problems
+      if (user) {
+        const { data: subs } = await supabase
+          .from('submissions')
+          .select('problem_id')
+          .eq('student_id', user.id)
+          .in('status', ['AC', 'Accepted']);
+        
+        if (subs) {
+          setSolvedIds(new Set(subs.map(s => s.problem_id)));
+        }
+      }
+
       setLoading(false);
     }
     fetchArchive();
@@ -236,6 +252,11 @@ export default function ArchivePage() {
                       </h3>
                       <div className="flex items-center gap-3">
                         <span className="text-[10px] px-2 py-0.5 rounded border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 font-mono uppercase">Standard</span>
+                        {solvedIds.has(p.id) && (
+                          <span className="text-[10px] px-2 py-0.5 rounded border border-blue-500/20 bg-blue-500/10 text-blue-400 font-mono uppercase flex items-center gap-1">
+                             <CheckCircle2 className="w-3 h-3" /> Solved
+                          </span>
+                        )}
                         <span className="text-[10px] text-zinc-600 font-mono flex items-center gap-1">
                           <User className="w-3 h-3" />
                           @{p.profiles?.username || "anonymous"}
