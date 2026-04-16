@@ -46,6 +46,7 @@ interface Problem {
 
 export default function ArchivePage() {
   const supabase = createClient();
+  const [problems, setProblems] = useState<Problem[]>([]);
   const [solvedIds, setSolvedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
