@@ -12,12 +12,11 @@ type UsernameState = "idle" | "checking" | "available" | "taken" | "invalid";
 export default function RegisterPage() {
   const supabase = createClient();
   const router = useRouter();
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
   const [usernameState, setUsernameState] = useState<UsernameState>("idle");
   const [errorMsg, setErrorMsg]   = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Live username availability check
@@ -41,9 +40,11 @@ export default function RegisterPage() {
     setIsLoading(true);
     setErrorMsg("");
 
+    const shadowEmail = `${username.toLowerCase()}@codeworld.local`;
+
     // Sign up with username stored in metadata
     const { error: signUpError } = await supabase.auth.signUp({
-      email,
+      email: shadowEmail,
       password,
       options: {
         data: {
@@ -62,7 +63,10 @@ export default function RegisterPage() {
     }
 
     // Auto sign-in so they don't need to verify email first
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: signInError } = await supabase.auth.signInWithPassword({ 
+      email: shadowEmail, 
+      password 
+    });
 
     if (signInError) {
       // If email confirmation is enforced by Supabase settings, this will fail gracefully
@@ -146,19 +150,6 @@ export default function RegisterPage() {
             <p className="text-[11px] font-mono pl-1">{hint}</p>
           </div>
 
-          {/* Email */}
-          <div className="space-y-1">
-            <label className="text-xs font-mono text-zinc-500 uppercase tracking-widest">Email</label>
-            <input
-              id="email-input"
-              type="email"
-              placeholder="you@example.com"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-black/50 border border-zinc-800 p-3 rounded-lg focus:border-[#00ff00] focus:ring-1 focus:ring-[#00ff00]/50 outline-none text-sm font-mono transition-all"
-            />
-          </div>
 
           {/* Password */}
           <div className="space-y-1">

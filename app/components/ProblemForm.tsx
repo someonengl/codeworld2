@@ -78,14 +78,18 @@ export default function ProblemForm({
         const lower = name.toLowerCase();
         
         // Match numbers: 1.in, input1.txt, test_01.out, sample1.txt, etc.
-        const match = name.match(/(\d+)/);
-        if (!match) return null;
-        const id = match[1];
+        const digitMatch = name.match(/(\d+)/);
+        // If no number, use stripped filename as ID to pair input/output
+        const id = digitMatch ? digitMatch[1] : name
+          .replace(/\.(txt|in|out|ans|sol|sample|example|test|tc)$/i, '')
+          .replace(/(input|output|testcase|sample|example|test|test_case|in|out)[_.-]?/gi, '') || 'default';
 
         // Improved patterns
-        const isInput = lower.includes('in') || lower.endsWith('.in') || lower.includes('input');
-        const isOutput = lower.includes('out') || lower.includes('output') || lower.includes('ans') || lower.includes('sol') || lower.endsWith('.out') || lower.endsWith('.ans');
+        const isInput = lower.endsWith('.in') || lower.includes('input') || (lower.includes('in') && !lower.includes('out'));
+        const isOutput = lower.endsWith('.out') || lower.endsWith('.ans') || lower.endsWith('.sol') || lower.includes('output') || lower.includes('out') || lower.includes('ans') || lower.includes('sol');
         const isSample = lower.includes('sample') || lower.includes('example');
+        
+        if (!isInput && !isOutput) return null;
         
         return { id, isInput, isOutput, isSample };
       };

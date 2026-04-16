@@ -28,7 +28,14 @@ export default function LoginPage() {
     
     // Slight artificial delay for UX feel of 'processing logic'
     setTimeout(async () => {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      // If it doesn't look like an email, assume it's a username and append shadow domain
+      const finalEmail = email.includes("@") ? email : `${email.toLowerCase()}@codeworld.local`;
+      
+      const { error } = await supabase.auth.signInWithPassword({ 
+        email: finalEmail, 
+        password 
+      });
+      
       if (error) {
         setErrorMsg(error.message);
         setIsLoading(false);
@@ -59,10 +66,10 @@ export default function LoginPage() {
           )}
           
           <div className="space-y-1">
-            <label className="text-xs font-mono text-zinc-500 uppercase">Hacker ID (Email)</label>
+            <label className="text-xs font-mono text-zinc-500 uppercase font-semibold">Hacker ID / Username</label>
             <input 
-              type="email" 
-              placeholder="root@terminal.com" 
+              type="text" 
+              placeholder="root or root@terminal.com" 
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
