@@ -212,77 +212,37 @@ export default function SubmitClient({
     setErrorOutput("");
     setSubmissionId(null);
 
-    const runResults: CaseResult[] = [];
-    let currentOverall: Verdict = "AC";
-
     try {
-      // Judge each test case sequentially to avoid aggregate timeouts
-      for (let i = 0; i < testCases.length; i++) {
-        const tc = testCases[i];
-        
-        const res = await fetch("/api/judge", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            source_code: code,
-            language: lang,
-            test_case: tc, // One case at a time
-            time_limit_ms: timeLimitMs,
-            user_id: userId,
-          }),
-        });
+      const res = await fetch("/api/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source_code: code,
+          language: lang,
+          problem_id: problemId,
+          time_limit_ms: timeLimitMs,
+          user_id: userId,
+        }),
+      });
 
-        const data = await res.json();
+      const data = await res.json();
 
-        if (data.error) {
-          setErrorOutput(data.error);
-          currentOverall = "RE";
-          break;
-        }
-
-        const caseResult: CaseResult = {
-          case_id: tc.id,
-          status: data.status,
-          stdout: data.stdout,
-          stderr: data.stderr,
-          expected: data.expected,
-          time_ms: data.time_ms,
-        };
-
-        runResults.push(caseResult);
-        setResults([...runResults]); // Real-time feedback
-
-        // Worst result wins
-        const priority = ["CE", "RE", "TLE", "WA", "AC"];
-        const currentScore = priority.indexOf(caseResult.status);
-        const overallScore = priority.indexOf(currentOverall);
-        if (currentScore < overallScore) {
-          currentOverall = caseResult.status;
-          // If it's a fatal error, stop judging
-          if (caseResult.status === "CE" || caseResult.status === "RE") break;
-        }
+      if (!res.ok || data.error) {
+        setErrorOutput(data.error || "Submission failed due to an unknown server error.");
+        setOverall("RE");
+        return;
       }
 
-      setOverall(currentOverall);
+      setResults(data.results || []);
+      setOverall(data.overall_status as Verdict);
 
-      // Log to DB
-      const { data: sub } = await supabase.from("submissions").insert({
-        problem_id: problemId,
-        student_id: userId,
-        code,
-        language_id: LANGUAGES.findIndex((l) => l.key === lang) + 1,
-        status: currentOverall,
-        execution_time_ms: Math.max(0, ...runResults.map(r => r.time_ms)),
-        result_data: runResults
-      }).select("id").single();
-
-      if (sub?.id) {
-        setSubmissionId(sub.id);
-        // Refresh data in background without a full page reload
+      if (data.submission_id) {
+        setSubmissionId(data.submission_id);
+        // Refresh data in background to update logs/leaderboards without a full page reload
         router.refresh();
       }
     } catch (err: any) {
-      setErrorOutput(err.message);
+      setErrorOutput(err.message || "Failed to communicate with the judge server.");
       setOverall("RE");
     } finally {
       setIsSubmitting(false);

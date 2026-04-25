@@ -44,7 +44,7 @@ function mapWandboxStatus(
 
 export async function POST(req: Request) {
   try {
-    const { source_code, language, test_case, time_limit_ms, user_id } = await req.json();
+    const { source_code, language, test_case, time_limit_ms, user_id, stdin } = await req.json();
     const headerList = await headers();
     const ip = headerList.get("x-forwarded-for") || "unknown";
     const limitKey = user_id || ip;
@@ -62,24 +62,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Unsupported language: ${language}` }, { status: 400 });
     }
 
-    // Run against the single provided test case
-    const res = await runOnWandbox(compiler, source_code, test_case?.input || "", time_limit_ms);
+    // Run against the single provided test case or raw stdin
+    const inputToUse = stdin !== undefined ? stdin : (test_case?.input || "");
+    const res = await runOnWandbox(compiler, source_code, inputToUse, time_limit_ms);
     
-    let status = res.status;
-    const actual = (res.stdout || "").trim();
-    const expected = (test_case?.expected_output || "").trim();
-
-    if (status === "AC" && test_case) {
-      status = actual === expected ? "AC" : "WA";
-    }
-
-    // TOTAL BLACKOUT: Hide all results from students to prevent leaks during contests
+    // Return the raw results for the IDE playground.
+    // Notice: We don't hide stdout here because this route is meant for custom input runs.
     return NextResponse.json({ 
-      ...res, 
-      status, 
-      case_id: test_case?.id, 
-      expected: "[HIDDEN]",
-      stdout: "[HIDDEN]"
+      results: [res] // wrap in results array for IdeClient compatibility
     });
   } catch (error: any) {
     console.error("Judge API Error:", error);
