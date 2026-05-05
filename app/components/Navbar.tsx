@@ -131,6 +131,17 @@ export default function Navbar({ initialUser, initialProfile }: Props) {
             </div>
             
             <Link
+              href="/topics"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border ${
+                pathname.startsWith("/topics")
+                  ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.1)]"
+                  : "text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-zinc-800/50"
+              }`}
+            >
+              Topics
+            </Link>
+
+            <Link
               href="/archive"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border ${
                 pathname === "/archive"

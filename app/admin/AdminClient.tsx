@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { 
   Users, 
+  BookMarked,
   BookOpen, 
   Globe2, 
   PlusCircle, 
@@ -28,7 +29,7 @@ import {
 
 export default function AdminClient({ userId }: { userId: string }) {
   const supabase = createClient();
-  const [activeTab, setActiveTab] = useState<"dashboard" | "users" | "problems" | "translations" | "announcements">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "users" | "problems" | "translations" | "announcements" | "topics">("dashboard");
 
   // Platform Stats
   const [stats, setStats] = useState({
@@ -36,7 +37,8 @@ export default function AdminClient({ userId }: { userId: string }) {
     totalProblems: 0,
     totalSubmissions: 0,
     pendingTranslations: 0,
-    pendingProblems: 0
+    pendingProblems: 0,
+    pendingTopics: 0
   });
 
   const [users, setUsers] = useState<any[]>([]);
@@ -46,6 +48,9 @@ export default function AdminClient({ userId }: { userId: string }) {
   const [translations, setTranslations] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [pendingTopics, setPendingTopics] = useState<any[]>([]);
+  const [approvedTopics, setApprovedTopics] = useState<any[]>([]);
+  const [selectedTopicAudit, setSelectedTopicAudit] = useState<any>(null);
   const [recentSubmissions, setRecentSubmissions] = useState<any[]>([]);
   
   // Ban Form
@@ -106,13 +111,19 @@ export default function AdminClient({ userId }: { userId: string }) {
         }
 
         const { data: recent } = await supabase.from('submissions').select('*, profiles(username), problems(id)').order('created_at', { ascending: false }).limit(5);
+
+        // Count pending topics
+        let ptCount = 0;
+        const { count: ptc, error: ptErr } = await supabase.from('topics').select('*', { count: 'exact', head: true }).eq('status', 'Pending');
+        if (!ptErr) ptCount = ptc || 0;
         
         setStats({
           totalUsers: uCount || 0,
           totalProblems: pCount,
           totalSubmissions: sCount || 0,
           pendingTranslations: tCount,
-          pendingProblems: ppCount
+          pendingProblems: ppCount,
+          pendingTopics: ptCount
         });
         if (recent) setRecentSubmissions(recent);
       } 
@@ -147,6 +158,12 @@ export default function AdminClient({ userId }: { userId: string }) {
       else if (activeTab === "announcements") {
         const { data } = await supabase.from('announcements').select('*').order('created_at', { ascending: false });
         if (data) setAnnouncements(data);
+      }
+      else if (activeTab === "topics") {
+        const { data: pending } = await supabase.from('topics').select('*, profiles(username, full_name)').eq('status', 'Pending').order('created_at', { ascending: false });
+        if (pending) setPendingTopics(pending);
+        const { data: approved } = await supabase.from('topics').select('*, profiles(username, full_name)').eq('status', 'Approved').order('created_at', { ascending: false });
+        if (approved) setApprovedTopics(approved);
       }
       else if (activeTab === "bans" as any) {
         // Only fetch if table exists
@@ -241,6 +258,27 @@ export default function AdminClient({ userId }: { userId: string }) {
     }
   };
 
+  const moderateTopic = async (topicId: string, status: 'Approved' | 'Rejected') => {
+    try {
+      const { error } = await supabase.from('topics').update({ status }).eq('id', topicId);
+      if (error) throw error;
+      fetchData();
+    } catch (err: any) {
+      alert("Topic moderation failed: " + err.message);
+    }
+  };
+
+  const deleteTopic = async (id: string) => {
+    if (!confirm("Delete this topic permanently?")) return;
+    try {
+      const { error } = await supabase.from('topics').delete().eq('id', id);
+      if (error) throw error;
+      fetchData();
+    } catch (err: any) {
+      alert("Delete failed: " + err.message);
+    }
+  };
+
   const applyBan = async () => {
     if (!banValue) return;
     await supabase.from('bans').insert({
@@ -281,6 +319,7 @@ export default function AdminClient({ userId }: { userId: string }) {
           { id: 'announcements', label: 'Alerts', icon: Megaphone, color: 'blue' },
           { id: 'users', label: 'Users', icon: Users, color: 'purple' },
           { id: 'problems', label: 'Archive', icon: BookOpen, color: 'emerald' },
+          { id: 'topics', label: 'Topics', icon: BookMarked, color: 'cyan' },
           { id: 'bans', label: 'Bans', icon: ShieldCheck, color: 'red' },
           { id: 'translations', label: 'Translations', icon: Globe2, color: 'rose' },
         ].map((tab) => (
@@ -308,7 +347,7 @@ export default function AdminClient({ userId }: { userId: string }) {
               { label: "Total Users", value: stats.totalUsers, icon: Users, color: "text-purple-400" },
               { label: "Global Archive", value: stats.totalProblems, icon: BookOpen, color: "text-emerald-400" },
               { label: "Submissions", value: stats.totalSubmissions, icon: Activity, color: "text-blue-400" },
-              { label: "Pending Issues", value: stats.pendingTranslations + stats.pendingProblems, icon: ShieldCheck, color: "text-rose-400" },
+              { label: "Pending Issues", value: stats.pendingTranslations + stats.pendingProblems + stats.pendingTopics, icon: ShieldCheck, color: "text-rose-400" },
             ].map((s, idx) => (
               <div key={idx} className="bg-zinc-950 border border-zinc-900 p-5 rounded-xl shadow-inner">
                 <div className="flex justify-between items-start mb-2">
@@ -650,6 +689,179 @@ export default function AdminClient({ userId }: { userId: string }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {activeTab === 'topics' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Moderation Queue */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold flex items-center gap-2 pb-2 border-b border-zinc-800">
+              <CheckCircle className="w-5 h-5 text-cyan-500"/> Topic Moderation Queue
+            </h2>
+            {pendingTopics.length === 0 && <div className="text-zinc-600 text-xs italic">No topics awaiting approval.</div>}
+            {pendingTopics.map(t => (
+              <div 
+                key={t.id}
+                onClick={() => setSelectedTopicAudit(t)}
+                className="p-5 bg-zinc-950 border border-zinc-900 rounded-xl space-y-3 cursor-pointer hover:border-cyan-500/30 hover:bg-zinc-900/20 transition-all group/taud"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 pr-4">
+                    <div className="text-xs font-bold text-cyan-400 mb-1 flex items-center gap-2">
+                      TOPIC_ID: {t.id.substring(0,8)}
+                      <span className="text-[9px] px-1.5 py-0.5 bg-cyan-500/10 text-cyan-500 rounded border border-cyan-500/20 opacity-0 group-hover/taud:opacity-100 transition-opacity">CLICK_TO_REVIEW</span>
+                    </div>
+                    <h4 className="text-sm font-bold text-white mb-2">{t.title}</h4>
+                    <div className="p-3 bg-zinc-900/50 rounded border border-zinc-800 text-[11px] font-mono text-zinc-400 line-clamp-2">
+                      {t.content || "No summary provided."}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={(e) => { e.stopPropagation(); moderateTopic(t.id, 'Approved'); }} className="p-2.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition-all shadow-lg hover:shadow-emerald-500/10">
+                      <CheckCircle className="w-5 h-5"/>
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); moderateTopic(t.id, 'Rejected'); }} className="p-2.5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg hover:bg-red-500/20 transition-all shadow-lg hover:shadow-red-500/10">
+                      <XCircle className="w-5 h-5"/>
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 pt-2 border-t border-zinc-900 text-[9px] font-mono uppercase tracking-widest text-zinc-600">
+                  <span>Level: {t.difficulty}</span>
+                  <span>Category: {t.category}</span>
+                  <span>By: {t.profiles?.username || 'Unknown'}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Approved Topics List */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold flex items-center gap-2 pb-2 border-b border-zinc-800">
+              <Globe2 className="w-5 h-5 text-cyan-500"/> Live Topics
+            </h2>
+            <div className="space-y-3">
+              {approvedTopics.map(t => (
+                <div key={t.id} className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg group">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="text-sm font-bold text-white mb-1">{t.title}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest">TID: {t.id.substring(0,8)}</span>
+                        <span className="text-[9px] font-mono text-zinc-600">•</span>
+                        <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest">{t.difficulty} / {t.category}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => deleteTopic(t.id)} className="p-1.5 bg-zinc-800 text-zinc-400 hover:text-red-500 rounded"><Trash2 className="w-3.5 h-3.5"/></button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOPIC AUDIT MODAL */}
+      {selectedTopicAudit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={() => setSelectedTopicAudit(null)} />
+          <div className="relative bg-zinc-950 border border-zinc-800 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-[0_0_100px_rgba(0,0,0,1)] ring-1 ring-white/10 animate-in fade-in zoom-in duration-300">
+            
+            {/* Modal Header */}
+            <div className="px-8 py-6 border-b border-zinc-900 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+                  <BookMarked className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-mono text-cyan-500 uppercase tracking-[0.3em] font-bold">Topic_Review_Sequence</div>
+                  <h3 className="text-xl font-bold text-white tracking-tight">
+                    {selectedTopicAudit.title}
+                  </h3>
+                </div>
+              </div>
+              <button onClick={() => setSelectedTopicAudit(null)} className="p-2 text-zinc-500 hover:text-white transition-colors bg-zinc-900/50 rounded-lg border border-zinc-800">
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-6">
+                  <section>
+                    <h4 className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-cyan-400" /> SUMMARY
+                    </h4>
+                    <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-2xl p-6 font-mono text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap border-l-4 border-l-cyan-500/50">
+                      {selectedTopicAudit.content || "No summary provided."}
+                    </div>
+                  </section>
+
+                  <section>
+                    <h4 className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-emerald-400" /> FULL_EXPLANATION
+                    </h4>
+                    <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-2xl p-6 font-mono text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap min-h-[150px] border-l-4 border-l-emerald-500/50">
+                      {selectedTopicAudit.explanation || "No detailed explanation."}
+                    </div>
+                  </section>
+
+                  {selectedTopicAudit.code_example && (
+                    <section>
+                      <h4 className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-3">CODE_EXAMPLE</h4>
+                      <div className="bg-black border border-zinc-800 rounded-2xl p-6">
+                        <pre className="text-[11px] font-mono text-zinc-300 leading-relaxed overflow-x-auto whitespace-pre">
+                          <code>{selectedTopicAudit.code_example}</code>
+                        </pre>
+                      </div>
+                    </section>
+                  )}
+                </div>
+
+                <div className="lg:col-span-1">
+                  <h4 className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-4">METADATA</h4>
+                  <div className="space-y-4">
+                    <div className="p-4 bg-zinc-900/20 border border-zinc-800 rounded-xl">
+                      <div className="text-[9px] text-zinc-600 uppercase font-bold mb-1">Difficulty</div>
+                      <div className="text-lg font-mono text-white">{selectedTopicAudit.difficulty}</div>
+                    </div>
+                    <div className="p-4 bg-zinc-900/20 border border-zinc-800 rounded-xl">
+                      <div className="text-[9px] text-zinc-600 uppercase font-bold mb-1">Category</div>
+                      <div className="text-lg font-mono text-white">{selectedTopicAudit.category}</div>
+                    </div>
+                    <div className="p-4 bg-zinc-900/20 border border-zinc-800 rounded-xl">
+                      <div className="text-[9px] text-zinc-600 uppercase font-bold mb-1">Author</div>
+                      <div className="text-lg font-mono text-white">@{selectedTopicAudit.profiles?.username || 'unknown'}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-8 py-6 bg-zinc-950 border-t border-zinc-900 flex justify-between items-center rounded-b-3xl">
+              <div className="text-[10px] font-mono text-zinc-600 uppercase">
+                Topic Review • ID: {selectedTopicAudit.id.substring(0,16)}
+              </div>
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => { moderateTopic(selectedTopicAudit.id, 'Rejected'); setSelectedTopicAudit(null); }}
+                  className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all shadow-lg shadow-red-600/20"
+                >
+                  Reject_Topic
+                </button>
+                <button 
+                  onClick={() => { moderateTopic(selectedTopicAudit.id, 'Approved'); setSelectedTopicAudit(null); }}
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/20"
+                >
+                  Approve_Topic
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
