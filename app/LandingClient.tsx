@@ -44,9 +44,9 @@ const FEATURES = [
   {
     col: "col-span-1 md:col-span-2",
     icon: Code2,
-    iconBg: "bg-emerald-500/10",
-    iconColor: "text-emerald-400",
-    glow: "rgba(16,185,129,0.12)",
+    iconBg: "bg-brand-cyan/10",
+    iconColor: "text-brand-cyan",
+    glow: "rgba(0,245,255,0.12)",
     title: "Multi-Language Submit",
     desc: "Paste or upload code in C++, Python, Java, Go, Rust, and more. Clean submit-only interface built for competitive programmers.",
     large: true,
@@ -63,9 +63,9 @@ const FEATURES = [
   {
     col: "col-span-1",
     icon: Shield,
-    iconBg: "bg-purple-500/10",
-    iconColor: "text-purple-400",
-    glow: "rgba(168,85,247,0.12)",
+    iconBg: "bg-brand-orange/10",
+    iconColor: "text-brand-orange",
+    glow: "rgba(255,107,0,0.12)",
     title: "Classroom Hubs",
     desc: "Strictly isolated learning environments with professional group management and access controls.",
   },
@@ -88,13 +88,13 @@ export default function LandingClient({ user }: Props) {
       <div className="fixed inset-0 z-0 bg-[#050505] overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
         <motion.div
-          className="absolute top-0 right-0 w-[900px] h-[900px] bg-indigo-500/8 rounded-full blur-[80px] pointer-events-none will-change-transform"
+          className="absolute top-0 right-0 w-[900px] h-[900px] bg-brand-cyan/8 rounded-full blur-[80px] pointer-events-none will-change-transform"
           animate={{ scale: [1, 1.05, 1], opacity: [0.4, 0.6, 0.4] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
           style={{ translateX: "30%", translateY: "-30%" }}
         />
         <motion.div
-          className="absolute bottom-0 left-0 w-[700px] h-[700px] bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none will-change-transform"
+          className="absolute bottom-0 left-0 w-[700px] h-[700px] bg-brand-orange/5 rounded-full blur-[80px] pointer-events-none will-change-transform"
           animate={{ scale: [1, 1.08, 1], opacity: [0.3, 0.5, 0.3] }}
           transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 2 }}
           style={{ translateX: "-30%", translateY: "30%" }}
@@ -114,7 +114,7 @@ export default function LandingClient({ user }: Props) {
           >
             {/* Badge */}
             <motion.div variants={heroItem}>
-              <div className="inline-flex items-center gap-2 bg-[#10b981]/5 text-emerald-400 border border-emerald-500/10 px-4 py-1.5 rounded-full text-[11px] font-mono font-bold uppercase tracking-widest shadow-[inset_0_1px_0_rgba(16,185,129,0.2)]">
+              <div className="inline-flex items-center gap-2 bg-brand-cyan/5 text-brand-cyan border border-brand-cyan/10 px-4 py-1.5 rounded-full text-[11px] font-mono font-bold uppercase tracking-widest shadow-[inset_0_1px_0_rgba(0,245,255,0.2)]">
                 <motion.span
                   animate={{ opacity: [1, 0.4, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
@@ -132,7 +132,7 @@ export default function LandingClient({ user }: Props) {
             >
               Next-Gen Algorithmic{" "}
               <br className="hidden md:block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-br from-indigo-400 via-purple-400 to-emerald-400 animate-gradient">
+              <span className="text-transparent bg-clip-text bg-gradient-to-br from-brand-cyan via-white to-brand-orange animate-gradient">
                 Battleground.
               </span>
             </motion.h1>
@@ -153,7 +153,7 @@ export default function LandingClient({ user }: Props) {
               {user ? (
                 <Link
                   href="/dashboard"
-                  className="group flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-4 rounded-xl transition-all duration-300 text-sm hover:shadow-[0_0_40px_rgba(99,102,241,0.5)] hover:-translate-y-0.5 animate-pulse-glow"
+                  className="group flex-1 sm:flex-none flex items-center justify-center gap-2 bg-brand-cyan text-black font-bold px-8 py-4 rounded-xl transition-all duration-300 text-sm hover:shadow-[0_0_40px_rgba(0,245,255,0.5)] hover:-translate-y-0.5 animate-pulse-glow"
                 >
                   Go to Dashboard
                   <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -162,7 +162,7 @@ export default function LandingClient({ user }: Props) {
                 <>
                   <Link
                     href="/register"
-                    className="group flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-4 rounded-xl transition-all duration-300 text-sm hover:shadow-[0_0_40px_rgba(99,102,241,0.5)] hover:-translate-y-0.5"
+                    className="group flex-1 sm:flex-none flex items-center justify-center gap-2 bg-brand-cyan text-black font-bold px-8 py-4 rounded-xl transition-all duration-300 text-sm hover:shadow-[0_0_40px_rgba(0,245,255,0.5)] hover:-translate-y-0.5"
                   >
                     Get Started
                     <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -234,8 +234,8 @@ export default function LandingClient({ user }: Props) {
         {/* ─── Footer ──────────────────────────────────────────── */}
         <footer className="w-full border-t border-white/[0.04] mt-12 py-12 px-6">
           <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-2 font-bold text-lg text-zinc-500 hover:text-indigo-400 transition-colors">
-              <Terminal className="w-5 h-5 text-indigo-500" />
+            <div className="flex items-center gap-2 font-bold text-lg text-zinc-500 hover:text-brand-cyan transition-colors">
+              <Terminal className="w-5 h-5 text-brand-cyan" />
               CodeWorld
             </div>
             <div className="text-xs text-zinc-700 font-mono tracking-widest uppercase">

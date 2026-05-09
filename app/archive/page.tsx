@@ -9,24 +9,24 @@ import MotionCard from "@/app/components/MotionCard";
 import ProblemForm from "@/app/components/ProblemForm";
 import { createProblem } from "@/app/actions/createProblem";
 
-const container: Variants = { 
-  hidden: {}, 
-  show: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } } 
+const container: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } }
 };
 
-const statsItem: Variants = { 
-  hidden: { opacity: 0, y: 20 }, 
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } } 
+const statsItem: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } }
 };
 
-const gridContainer: Variants = { 
-  hidden: {}, 
-  show: { transition: { staggerChildren: 0.07, delayChildren: 0.1 } } 
+const gridContainer: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07, delayChildren: 0.1 } }
 };
 
-const problemItem: Variants = { 
-  hidden: { opacity: 0, y: 30, scale: 0.97 }, 
-  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } } 
+const problemItem: Variants = {
+  hidden: { opacity: 0, y: 30, scale: 0.97 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } }
 };
 
 interface Problem {
@@ -67,7 +67,7 @@ export default function ArchivePage() {
 
       // Safety check: only filter by status if the column exists
       const { data: checkData, error: checkError } = await supabase.from('problems').select('status').limit(1);
-      
+
       if (!checkError) {
         query = query.eq('status', 'Approved');
       }
@@ -83,7 +83,7 @@ export default function ArchivePage() {
           .select('problem_id')
           .eq('student_id', user.id)
           .in('status', ['AC', 'Accepted']);
-        
+
         if (subs) {
           setSolvedIds(new Set(subs.map(s => s.problem_id)));
         }
@@ -121,7 +121,7 @@ export default function ArchivePage() {
       </div>
 
       <div className="max-w-6xl mx-auto relative z-10 animate-fade-in">
-        
+
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
@@ -140,7 +140,7 @@ export default function ArchivePage() {
           <div className="flex items-center gap-3">
             <div className="relative group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-emerald-500 transition-colors" />
-              <input 
+              <input
                 type="text"
                 placeholder="Search challenges..."
                 value={searchQuery}
@@ -148,7 +148,7 @@ export default function ArchivePage() {
                 className="bg-white/[0.02] backdrop-blur-md border border-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] rounded-xl pl-10 pr-4 py-3 w-full md:w-64 font-mono text-sm focus:outline-none focus:bg-white/[0.04] focus:border-emerald-500/50 transition-all text-white"
               />
             </div>
-            <button 
+            <button
               onClick={() => setIsContributing(true)}
               className="px-6 py-3 bg-emerald-500 text-black rounded-xl font-bold flex items-center gap-2 hover:bg-emerald-400 transition-all shadow-[0_0_20px_rgba(52,211,153,0.2)]"
             >
@@ -161,7 +161,7 @@ export default function ArchivePage() {
         {isContributing && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
             <div className="bg-[#0a0a0a] border border-zinc-800 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-10 relative scrollbar-hide ring-1 ring-white/10 shadow-2xl">
-              <button 
+              <button
                 onClick={() => setIsContributing(false)}
                 className="absolute top-6 right-6 text-zinc-500 hover:text-white transition-colors"
               >
@@ -171,8 +171,8 @@ export default function ArchivePage() {
                 <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tighter">PROPOSE_GLOBAL_CHALLENGE</h2>
                 <p className="text-zinc-500 font-mono text-sm">Your problem will be available to all teachers and students in the archive.</p>
               </div>
-              <ProblemForm 
-                onSubmit={handleContribute} 
+              <ProblemForm
+                onSubmit={handleContribute}
                 onCancel={() => setIsContributing(false)}
                 submitLabel="Deploy to Global Archive"
               />
@@ -255,7 +255,7 @@ export default function ArchivePage() {
                         <span className="text-[10px] px-2 py-0.5 rounded border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 font-mono uppercase">Standard</span>
                         {solvedIds.has(p.id) && (
                           <span className="text-[10px] px-2 py-0.5 rounded border border-blue-500/20 bg-blue-500/10 text-blue-400 font-mono uppercase flex items-center gap-1">
-                             <CheckCircle2 className="w-3 h-3" /> Solved
+                            <CheckCircle2 className="w-3 h-3" /> Solved
                           </span>
                         )}
                         <span className="text-[10px] text-zinc-600 font-mono flex items-center gap-1">

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { manrope, jetbrainsMono } from "./fonts";
+import { inter, spaceMono } from "./fonts";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import Navbar from "./components/Navbar";
@@ -19,7 +19,7 @@ export default async function RootLayout({
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   let profile = null;
   if (user) {
     const { data } = await supabase.from('profiles').select('username, full_name, is_super_admin').eq('id', user.id).single();
@@ -34,9 +34,9 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${manrope.variable} ${jetbrainsMono.variable} h-full antialiased dark`}
+      className={`${inter.variable} ${spaceMono.variable} h-full antialiased dark`}
     >
-      <body suppressHydrationWarning className="min-h-full flex flex-col bg-background text-foreground font-sans antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
+      <body suppressHydrationWarning className="min-h-full flex flex-col bg-background text-foreground font-sans antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
         <ClientProviders>
           <Navbar initialUser={user} initialProfile={profile} />
           <main className="flex-1 flex flex-col w-full h-full">

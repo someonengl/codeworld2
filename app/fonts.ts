@@ -1,11 +1,12 @@
-import { Manrope, JetBrains_Mono } from "next/font/google";
+import { Inter, Space_Mono } from "next/font/google";
 
-export const manrope = Manrope({
-  variable: "--font-manrope",
+export const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-export const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
+export const spaceMono = Space_Mono({
+  variable: "--font-space-mono",
+  weight: ["400", "700"],
   subsets: ["latin"],
 });
