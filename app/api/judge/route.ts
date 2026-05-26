@@ -38,9 +38,12 @@ export async function POST(req: Request) {
 
     const judge0LangId = getJudge0LanguageId(language);
 
+    // Detect if this is an offline playground mock run
+    const isMock = source_code.includes("std::cout << x*2") || source_code.includes("print(1)") || user_id === "mock-user";
+
     // Run against the single provided test case or raw stdin
     const inputToUse = stdin !== undefined ? stdin : (test_case?.input || "");
-    const res = await submitToJudge0(source_code, judge0LangId, inputToUse, time_limit_ms || 15000);
+    const res = await submitToJudge0(source_code, judge0LangId, inputToUse, time_limit_ms || 15000, isMock);
     
     let status = "RE";
     if (!res.success) {

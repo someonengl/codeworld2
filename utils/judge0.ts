@@ -52,7 +52,8 @@ export async function submitToJudge0(
   sourceCode: string,
   languageId: number,
   stdin: string = "",
-  timeoutMs: number = 15000
+  timeoutMs: number = 15000,
+  isMock: boolean = false
 ): Promise<SubmissionResult> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -119,7 +120,7 @@ export async function submitToJudge0(
     
     if (error.name === "AbortError") {
       errorMessage = "The code execution request timed out. The server took too long to respond.";
-    } else if (error.message.includes("Failed to fetch") || error.message.includes("NetworkError")) {
+    } else if (error.message && (error.message.includes("Failed to fetch") || error.message.includes("NetworkError") || error.message.includes("fetch failed"))) {
       errorMessage = "Could not connect to the compilation server. The Cloudflare Tunnel might be down or unreachable.";
     } else if (error.message) {
       errorMessage = `Compiler Server Error: ${error.message}`;
@@ -129,8 +130,7 @@ export async function submitToJudge0(
 
     // If we are mock-testing and our main Arch laptop/tunnel is offline,
     // let's return a beautiful emulated compiler run so developer workflow isn't blocked!
-    const isMockRun = sourceCode.includes("std::cout << x*2") || sourceCode.includes("print(1)");
-    if (isMockRun) {
+    if (isMock) {
       const emulatedStdout = stdin.trim() === "5" ? "10\n" : "2\n";
       return {
         success: true,

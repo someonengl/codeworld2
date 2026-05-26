@@ -89,7 +89,7 @@ export async function POST(req: Request) {
       const tc = testCases[i];
       
       // Call your self-hosted Judge0 server
-      const res = await submitToJudge0(source_code, judge0LangId, tc.input || "", time_limit_ms || 15000);
+      const res = await submitToJudge0(source_code, judge0LangId, tc.input || "", time_limit_ms || 15000, isMock);
       
       let status = "RE";
       if (!res.success) {
