@@ -181,3 +181,21 @@ export function mapStatusToDbEnum(status: string): "Pending" | "Accepted" | "WA"
   return "Pending";
 }
 
+/**
+ * Translates standard language keys (e.g. "cpp", "python") to Judge0 CE language IDs.
+ * Fits Judge0 CE v1.13.0+ configurations.
+ */
+export function getJudge0LanguageId(language: string): number {
+  const mapping: Record<string, number> = {
+    cpp: 54,    // C++ (GCC 9.2.0)
+    c: 50,      // C (GCC 9.2.0)
+    python: 71, // Python (3.8.1)
+    java: 62,   // Java (JDK 13.0.1)
+    js: 63,     // JavaScript (Node.js 12.14.0)
+    go: 60,     // Go (1.13.5)
+    rust: 73,   // Rust (1.40.0)
+  };
+  return mapping[language.trim().toLowerCase()] || 54; // Default to C++ if unsupported
+}
+
+

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { mapStatusToDbEnum } from "@/utils/judge0";
+import { mapStatusToDbEnum, submitToJudge0, getJudge0LanguageId } from "@/utils/judge0";
 
 // Simple in-memory rate limiter (Consider upgrading to Redis for production)
 const rateLimit = new Map<string, { count: number; resetTime: number }>();
@@ -20,23 +20,9 @@ function isRateLimited(key: string): boolean {
   return false;
 }
 
-// Wandbox compiler names
-const WANDBOX_COMPILER: Record<string, string> = {
-  cpp:    "gcc-13.2.0",
-  c:      "gcc-13.2.0-c",
-  python: "cpython-3.12.5",
-  rust:   "rust-head",
-  go:     "go-head",
-  js:     "nodejs-22.4.0",
-  java:   "openjdk-23",
-  ruby:   "ruby-head",
-};
-
 const LANGUAGES = [
   "cpp", "c", "python", "java", "js", "go", "rust", "kotlin"
 ];
-
-const WANDBOX_URL = "https://wandbox.org/api/compile.json";
 
 export async function POST(req: Request) {
   try {
@@ -59,8 +45,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const compiler = WANDBOX_COMPILER[language];
-    if (!compiler) {
+    if (!LANGUAGES.includes(language)) {
       return NextResponse.json({ error: `Unsupported language: ${language}` }, { status: 400 });
     }
 
@@ -82,12 +67,29 @@ export async function POST(req: Request) {
     // 3. Evaluate against all test cases
     const runResults: any[] = [];
     let currentOverall = "AC";
+    const judge0LangId = getJudge0LanguageId(language);
 
     for (let i = 0; i < testCases.length; i++) {
       const tc = testCases[i];
-      const res = await runOnWandbox(compiler, source_code, tc.input || "", time_limit_ms);
       
-      let status = res.status;
+      // Call your self-hosted Judge0 server
+      const res = await submitToJudge0(source_code, judge0LangId, tc.input || "", time_limit_ms || 15000);
+      
+      let status = "RE";
+      if (!res.success) {
+        status = "RE";
+      } else if (res.statusCode === 3) {
+        status = "AC";
+      } else if (res.statusCode === 4) {
+        status = "WA";
+      } else if (res.statusCode === 5) {
+        status = "TLE";
+      } else if (res.statusCode === 6) {
+        status = "CE";
+      } else {
+        status = "RE";
+      }
+
       const actual = (res.stdout || "").trim();
       const expected = (tc.expected_output || "").trim();
 
@@ -101,9 +103,9 @@ export async function POST(req: Request) {
         is_sample: tc.is_sample,
         status: status,
         stdout: tc.is_sample ? res.stdout : "[HIDDEN]",
-        stderr: res.stderr,
+        stderr: res.stderr || res.compileOutput || res.errorMessage || "",
         expected: tc.is_sample ? expected : "[HIDDEN]",
-        time_ms: res.time_ms,
+        time_ms: Math.round(res.time * 1000), // convert seconds to ms
       };
 
       runResults.push(caseResult);
@@ -154,76 +156,5 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Submit API Error:", error);
     return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
-  }
-}
-
-async function runOnWandbox(
-  compiler: string,
-  code: string,
-  stdin: string,
-  timeLimitMs?: number
-): Promise<{ status: string; stdout: string; stderr: string; time_ms: number }> {
-  const controller = new AbortController();
-  const effectiveTimeout = (timeLimitMs || 2000) + 25000; 
-  const timeout = setTimeout(() => controller.abort(), effectiveTimeout); 
-
-  try {
-    const res = await fetch(WANDBOX_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        compiler,
-        code,
-        stdin: stdin || "",
-        "save": false,
-        "compiler-option-raw": "-O0", 
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Wandbox error ${res.status}: ${text}`);
-    }
-
-    const data = await res.json();
-
-    if (data.compiler_error && data.compiler_error.trim().length > 0) {
-      return {
-        status: "CE",
-        stdout: "",
-        stderr: data.compiler_error || data.compiler_message || "",
-        time_ms: 0,
-      };
-    }
-
-    if (data.status !== "0") {
-      return {
-        status: "RE",
-        stdout: data.program_output || "",
-        stderr: data.program_error || "",
-        time_ms: 0,
-      };
-    }
-
-    return {
-      status: "AC",
-      stdout: data.program_output || "",
-      stderr: data.program_error || "",
-      time_ms: 0,
-    };
-  } catch (err: any) {
-    clearTimeout(timeout);
-    if (err.name === "AbortError") {
-      return { 
-        status: "TLE", 
-        stdout: "", 
-        stderr: `Execution timed out (${effectiveTimeout}ms limit reached)`, 
-        time_ms: effectiveTimeout 
-      };
-    }
-    return { status: "RE", stdout: "", stderr: err.message, time_ms: 0 };
   }
 }
