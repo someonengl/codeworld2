@@ -127,10 +127,12 @@ export async function submitToJudge0(
     }
 
     console.error("Judge0 Submission Error:", error);
+    console.log("DEBUG: submitToJudge0 catch triggered. isMock parameter:", isMock, "stdin:", JSON.stringify(stdin));
 
     // If we are mock-testing and our main Arch laptop/tunnel is offline,
     // let's return a beautiful emulated compiler run so developer workflow isn't blocked!
     if (isMock) {
+      console.log("DEBUG: executing offline emulator fallback!");
       const emulatedStdout = stdin.trim() === "5" ? "10\n" : "2\n";
       return {
         success: true,

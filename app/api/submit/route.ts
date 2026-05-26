@@ -88,8 +88,24 @@ export async function POST(req: Request) {
     for (let i = 0; i < testCases.length; i++) {
       const tc = testCases[i];
       
-      // Call your self-hosted Judge0 server
-      const res = await submitToJudge0(source_code, judge0LangId, tc.input || "", time_limit_ms || 15000, isMock);
+      let res;
+      if (isMock) {
+        // Direct route-level offline simulation fallback
+        const emulatedStdout = (tc.input || "").trim() === "5" ? "10\n" : "2\n";
+        res = {
+          success: true,
+          statusDescription: "Accepted",
+          statusCode: 3, // AC
+          stdout: emulatedStdout,
+          stderr: "",
+          compileOutput: "",
+          time: 0.05,
+          memory: 1240,
+        };
+      } else {
+        // Call your self-hosted Judge0 server
+        res = await submitToJudge0(source_code, judge0LangId, tc.input || "", time_limit_ms || 15000, isMock);
+      }
       
       let status = "RE";
       if (!res.success) {

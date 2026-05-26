@@ -43,7 +43,24 @@ export async function POST(req: Request) {
 
     // Run against the single provided test case or raw stdin
     const inputToUse = stdin !== undefined ? stdin : (test_case?.input || "");
-    const res = await submitToJudge0(source_code, judge0LangId, inputToUse, time_limit_ms || 15000, isMock);
+    
+    let res;
+    if (isMock) {
+      // Direct route-level offline simulation fallback
+      const emulatedStdout = inputToUse.trim() === "5" ? "10\n" : "2\n";
+      res = {
+        success: true,
+        statusDescription: "Accepted",
+        statusCode: 3, // AC
+        stdout: emulatedStdout,
+        stderr: "",
+        compileOutput: "",
+        time: 0.05,
+        memory: 1240,
+      };
+    } else {
+      res = await submitToJudge0(source_code, judge0LangId, inputToUse, time_limit_ms || 15000, isMock);
+    }
     
     let status = "RE";
     if (!res.success) {
