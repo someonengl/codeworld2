@@ -59,15 +59,17 @@ export async function submitToJudge0(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(`${JUDGE0_URL}/submissions?wait=true`, {
+    const safeBufferBtoa = (str: string) => Buffer.from(str, 'utf-8').toString('base64');
+    const response = await fetch(`${JUDGE0_URL}/submissions?wait=true&base64_encoded=true`, {
       method: "POST",
       headers: {
         ...JUDGE0_HEADERS,
       },
       body: JSON.stringify({
-        source_code: sourceCode,
+        source_code: safeBufferBtoa(sourceCode),
         language_id: languageId,
-        stdin: stdin,
+        stdin: safeBufferBtoa(stdin),
+        base64_encoded: true
       }),
       signal: controller.signal,
     });
@@ -87,14 +89,21 @@ export async function submitToJudge0(
     }
 
     const data = await response.json();
+    const safeBufferAtob = (str: string) => {
+      try {
+        return Buffer.from(str, 'base64').toString('utf-8');
+      } catch {
+        return str;
+      }
+    };
 
     // 3. PARSING LOGIC
     // Extracting and formatting fields from the returned JSON response
-    const stdout = data.stdout || "";
+    const stdout = safeBufferAtob(data.stdout || "");
 
     // Fall back to compile_output if stderr is empty or compile-time error occurs
-    const stderr = data.stderr || "";
-    const compileOutput = data.compile_output || "";
+    const stderr = safeBufferAtob(data.stderr || "");
+    const compileOutput = safeBufferAtob(data.compile_output || "");
 
     const time = data.time ? parseFloat(data.time) : 0; // execution time in seconds
     const memory = data.memory ? parseInt(data.memory, 10) : 0; // memory in KB
