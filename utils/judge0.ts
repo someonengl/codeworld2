@@ -10,6 +10,7 @@
 // It will check Next.js (NEXT_PUBLIC_), Create React App (REACT_APP_), and Vite (VITE_) prefixes,
 // falling back to your current live tunnel URL if none are set.
 export const JUDGE0_URL = 
+  process.env.NEXT_PUBLIC_JUDGE0_API_URL ||
   process.env.NEXT_PUBLIC_JUDGE0_URL || 
   (typeof window !== "undefined" && (window as any).env?.VITE_JUDGE0_URL) || // Browser fallback for some Vite setups
   (process.env as any).VITE_JUDGE0_URL ||
