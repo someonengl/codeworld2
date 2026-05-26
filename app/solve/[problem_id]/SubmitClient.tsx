@@ -257,16 +257,19 @@ export default function SubmitClient({
       for (let i = 0; i < testCases.length; i++) {
         const tc = testCases[i];
         
-        const response = await fetch("https://judge0myownserver.store/submissions?wait=true", {
+        const encodedSource = btoa(code);
+        const encodedStdin = btoa(tc.input || "");
+        
+        const response = await fetch("https://judge0myownserver.store/submissions?wait=true&base64_encoded=true", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            source_code: code,
+            source_code: encodedSource,
             language_id: judge0LangId,
-            stdin: tc.input || "",
-            base64_encoded: false
+            stdin: encodedStdin,
+            base64_encoded: true
           })
         });
 
@@ -276,8 +279,17 @@ export default function SubmitClient({
         }
 
         const data = await response.json();
-        const stdout = data.stdout || "";
-        const stderr = data.stderr || data.compile_output || "";
+        const safeAtob = (str: string | null | undefined) => {
+          if (!str) return "";
+          try {
+            return atob(str);
+          } catch {
+            return str;
+          }
+        };
+
+        const stdout = safeAtob(data.stdout);
+        const stderr = safeAtob(data.stderr || data.compile_output);
         const time = data.time ? Math.round(parseFloat(data.time) * 1000) : 0;
         const statusCode = data.status?.id || 0;
 
