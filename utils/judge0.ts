@@ -15,7 +15,7 @@ export const JUDGE0_URL =
   (typeof window !== "undefined" && (window as any).env?.VITE_JUDGE0_URL) || // Browser fallback for some Vite setups
   (process.env as any).VITE_JUDGE0_URL ||
   process.env.REACT_APP_JUDGE0_URL ||
-  "https://bring-supplier-appreciation-mime.trycloudflare.com";
+  "https://judge0myownserver.store";
 
 // Optional API authentication headers. 
 // If your Judge0 instance or Cloudflare Tunnel requires credentials (e.g. Cloudflare Access, 
