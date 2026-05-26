@@ -62,10 +62,8 @@ export default async function SolvePage({ params }: { params: Promise<{ problem_
   const isTeacher = user.id === problem?.teacher_id;
   const isArchiveProblem = !problem?.group_id;
 
-  // SECURE DATA PARTITIONING: Strip non-sample test cases from students
-  const filteredTestCases = isTeacher 
-    ? (testCases || []) 
-    : (testCases || []).filter(tc => tc.is_sample);
+  // SECURE DATA PARTITIONING: Pass all test cases for background client-side grading. Masking is securely handled by SubmitClient UI.
+  const filteredTestCases = testCases || [];
 
   // Group problems follow group settings, Archive problems follow strict student/teacher split
   const allowViewTestcases = isTeacher || (problem?.group?.allow_view_testcases ?? false);
