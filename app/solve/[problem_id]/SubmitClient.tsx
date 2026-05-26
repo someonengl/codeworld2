@@ -239,14 +239,7 @@ export default function SubmitClient({
     }
   }
 
-  const safeBtoa = (str: string) => btoa(unescape(encodeURIComponent(str)));
-  const safeAtob = (str: string) => {
-    try {
-      return decodeURIComponent(escape(atob(str)));
-    } catch {
-      return str;
-    }
-  };
+
 
   async function handleSubmit() {
     if (isSubmitting || !code.trim()) return;
@@ -264,16 +257,16 @@ export default function SubmitClient({
       for (let i = 0; i < testCases.length; i++) {
         const tc = testCases[i];
         
-        const response = await fetch("https://judge0myownserver.store/submissions?wait=true&base64_encoded=true", {
+        const response = await fetch("https://judge0myownserver.store/submissions?wait=true", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            source_code: safeBtoa(code),
+            source_code: code,
             language_id: judge0LangId,
-            stdin: safeBtoa(tc.input || ""),
-            base64_encoded: true
+            stdin: tc.input || "",
+            base64_encoded: false
           })
         });
 
@@ -283,8 +276,8 @@ export default function SubmitClient({
         }
 
         const data = await response.json();
-        const stdout = safeAtob(data.stdout || "");
-        const stderr = safeAtob(data.stderr || data.compile_output || "");
+        const stdout = data.stdout || "";
+        const stderr = data.stderr || data.compile_output || "";
         const time = data.time ? Math.round(parseFloat(data.time) * 1000) : 0;
         const statusCode = data.status?.id || 0;
 

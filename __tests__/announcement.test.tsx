@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
 import AnnouncementPanel from '@/app/components/AnnouncementPanel'
 import React from 'react'
@@ -26,9 +26,9 @@ test('it displays the announcement title', () => {
   ]
 
   // Render the component
-  render(<AnnouncementPanel initialAnnouncements={fakeAnnouncements} />)
+  const { getByText } = render(<AnnouncementPanel initialAnnouncements={fakeAnnouncements} />)
 
   // Check if the title is on the screen
-  const title = screen.getByText(/Welcome/i)
+  const title = getByText(/Welcome/i)
   expect(title).toBeInTheDocument()
 })
