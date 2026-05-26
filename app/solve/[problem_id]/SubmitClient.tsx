@@ -778,7 +778,7 @@ export default function SubmitClient({
               language={lang === "js" ? "javascript" : lang}
               value={code}
               theme="vs-dark"
-              onChange={(val) => setCode(val || "")}
+              onChange={(val: string | undefined) => setCode(val || "")}
               options={{
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
