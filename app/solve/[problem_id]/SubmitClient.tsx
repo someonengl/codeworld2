@@ -313,6 +313,7 @@ export default function SubmitClient({
         };
 
         runResults.push(caseResult);
+        setResults([...runResults]);
 
         // Compute overall verdict priority
         const priority: Verdict[] = ["CE", "RE", "TLE", "WA", "AC"];
@@ -320,12 +321,10 @@ export default function SubmitClient({
         const overallScore = priority.indexOf(currentOverall);
         if (currentScore < overallScore) {
           currentOverall = status;
-          if (status === "CE" || status === "RE") break;
         }
+        setOverall(currentOverall);
+        if (status === "CE" || status === "RE") break;
       }
-
-      setResults(runResults);
-      setOverall(currentOverall);
 
       // Insert directly into Supabase database securely
       const maxExecutionTime = runResults.length > 0 ? Math.max(...runResults.map(r => r.time_ms)) : 0;
