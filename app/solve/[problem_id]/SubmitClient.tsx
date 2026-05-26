@@ -231,7 +231,7 @@ export default function SubmitClient({
 
   function mapVerdictToDbEnum(v: Verdict): string {
     switch (v) {
-      case "AC": return "AC";
+      case "AC": return "Accepted";
       case "WA": return "WA";
       case "TLE": return "TLE";
       case "CE": return "CE";
