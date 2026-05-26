@@ -329,9 +329,10 @@ export default function SubmitClient({
         if (currentScore < overallScore) {
           currentOverall = status;
         }
-        setOverall(currentOverall);
         if (status === "CE" || status === "RE") break;
       }
+
+      setOverall(currentOverall);
 
       // Insert directly into Supabase database securely
       const maxExecutionTime = runResults.length > 0 ? Math.max(...runResults.map(r => r.time_ms)) : 0;
