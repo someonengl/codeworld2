@@ -24,6 +24,7 @@ type Verdict = "AC" | "WA" | "TLE" | "CE" | "RE" | "Pending";
 
 interface CaseResult {
   case_id: string;
+  is_sample?: boolean;
   status: Verdict;
   stdout: string;
   stderr: string;
@@ -204,6 +205,40 @@ export default function SubmitClient({
     }
   }
 
+  function getJudge0LanguageId(langKey: string): number {
+    switch (langKey) {
+      case "cpp": return 54;
+      case "c": return 50;
+      case "python": return 71;
+      case "java": return 62;
+      case "js": return 63;
+      case "go": return 60;
+      case "rust": return 73;
+      case "kotlin": return 78;
+      default: return 54;
+    }
+  }
+
+  function getVerdictFromStatusId(statusId: number): Verdict {
+    switch (statusId) {
+      case 3: return "AC";
+      case 4: return "WA";
+      case 5: return "TLE";
+      case 6: return "CE";
+      default: return "RE";
+    }
+  }
+
+  function mapVerdictToDbEnum(v: Verdict): string {
+    switch (v) {
+      case "AC": return "AC";
+      case "WA": return "WA";
+      case "TLE": return "TLE";
+      case "CE": return "CE";
+      default: return "RE";
+    }
+  }
+
   async function handleSubmit() {
     if (isSubmitting || !code.trim()) return;
     setIsSubmitting(true);
@@ -213,36 +248,99 @@ export default function SubmitClient({
     setSubmissionId(null);
 
     try {
-      const res = await fetch("/api/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source_code: code,
-          language: lang,
-          problem_id: problemId,
-          time_limit_ms: timeLimitMs,
-          user_id: userId,
-        }),
-      });
+      const runResults: CaseResult[] = [];
+      let currentOverall: Verdict = "AC";
+      const judge0LangId = getJudge0LanguageId(lang);
 
-      const data = await res.json();
+      for (let i = 0; i < testCases.length; i++) {
+        const tc = testCases[i];
+        
+        const response = await fetch("https://judge0myownserver.store/submissions?wait=true", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            source_code: code,
+            language_id: judge0LangId,
+            stdin: tc.input || ""
+          })
+        });
 
-      if (!res.ok || data.error) {
-        setErrorOutput(data.error || "Submission failed due to an unknown server error.");
-        setOverall("RE");
-        return;
+        if (!response.ok) {
+          const errDetail = `Compiler Server Error: HTTP ${response.status}`;
+          throw new Error(errDetail);
+        }
+
+        const data = await response.json();
+        const stdout = data.stdout || "";
+        const stderr = data.stderr || data.compile_output || "";
+        const time = data.time ? Math.round(parseFloat(data.time) * 1000) : 0;
+        const statusCode = data.status?.id || 0;
+
+        let status: Verdict = getVerdictFromStatusId(statusCode);
+
+        const actual = stdout.trim();
+        const expected = (tc.expected_output || "").trim();
+
+        if (status === "AC") {
+          status = actual === expected ? "AC" : "WA";
+        }
+
+        const caseResult: CaseResult = {
+          case_id: tc.id,
+          is_sample: tc.is_sample,
+          status: status,
+          stdout: tc.is_sample || isTeacher || allowViewTestcases ? stdout : "[HIDDEN]",
+          stderr: stderr,
+          expected: tc.is_sample || isTeacher || allowViewTestcases ? tc.expected_output : "[HIDDEN]",
+          time_ms: time
+        };
+
+        runResults.push(caseResult);
+
+        // Compute overall verdict priority
+        const priority: Verdict[] = ["CE", "RE", "TLE", "WA", "AC"];
+        const currentScore = priority.indexOf(status);
+        const overallScore = priority.indexOf(currentOverall);
+        if (currentScore < overallScore) {
+          currentOverall = status;
+          if (status === "CE" || status === "RE") break;
+        }
       }
 
-      setResults(data.results || []);
-      setOverall(data.overall_status as Verdict);
+      setResults(runResults);
+      setOverall(currentOverall);
 
-      if (data.submission_id) {
-        setSubmissionId(data.submission_id);
-        // Refresh data in background to update logs/leaderboards without a full page reload
+      // Insert directly into Supabase database securely
+      const maxExecutionTime = runResults.length > 0 ? Math.max(...runResults.map(r => r.time_ms)) : 0;
+      const langIndex = ["cpp", "c", "python", "java", "js", "go", "rust", "kotlin"].indexOf(lang);
+      const language_id = langIndex >= 0 ? langIndex + 1 : 1;
+
+      const { data: sub, error: insertErr } = await supabase
+        .from("submissions")
+        .insert({
+          problem_id: problemId,
+          student_id: userId,
+          code: code,
+          language_id: language_id,
+          status: mapVerdictToDbEnum(currentOverall),
+          execution_time_ms: maxExecutionTime,
+          result_data: runResults
+        })
+        .select("id")
+        .single();
+
+      if (insertErr) {
+        console.error("Submission DB Insert Error:", insertErr);
+        setErrorOutput("Graded successfully, but failed to log submission in database history.");
+      } else if (sub?.id) {
+        setSubmissionId(sub.id);
         router.refresh();
       }
+
     } catch (err: any) {
-      setErrorOutput(err.message || "Failed to communicate with the judge server.");
+      setErrorOutput(err.message || "Failed to communicate directly with the production Judge0 server.");
       setOverall("RE");
     } finally {
       setIsSubmitting(false);

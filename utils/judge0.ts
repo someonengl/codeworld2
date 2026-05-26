@@ -9,13 +9,13 @@
 // Retrieve the Judge0 URL from environment variables based on standard framework conventions.
 // It will check Next.js (NEXT_PUBLIC_), Create React App (REACT_APP_), and Vite (VITE_) prefixes,
 // falling back to your current live tunnel URL if none are set.
-export const JUDGE0_URL = 
+export const JUDGE0_URL =
   process.env.NEXT_PUBLIC_JUDGE0_API_URL ||
-  process.env.NEXT_PUBLIC_JUDGE0_URL || 
+  process.env.NEXT_PUBLIC_JUDGE0_URL ||
   (typeof window !== "undefined" && (window as any).env?.VITE_JUDGE0_URL) || // Browser fallback for some Vite setups
   (process.env as any).VITE_JUDGE0_URL ||
   process.env.REACT_APP_JUDGE0_URL ||
-  "https://judge0myownserver.store";
+  "https://bring-supplier-appreciation-mime.trycloudflare.com";
 
 // Optional API authentication headers. 
 // If your Judge0 instance or Cloudflare Tunnel requires credentials (e.g. Cloudflare Access, 
@@ -91,7 +91,7 @@ export async function submitToJudge0(
     // 3. PARSING LOGIC
     // Extracting and formatting fields from the returned JSON response
     const stdout = data.stdout || "";
-    
+
     // Fall back to compile_output if stderr is empty or compile-time error occurs
     const stderr = data.stderr || "";
     const compileOutput = data.compile_output || "";
@@ -117,7 +117,7 @@ export async function submitToJudge0(
 
     // 5. ERROR HANDLING (Network timeout, dead tunnel links, or DNS failures)
     let errorMessage = "An unexpected error occurred during execution.";
-    
+
     if (error.name === "AbortError") {
       errorMessage = "The code execution request timed out. The server took too long to respond.";
     } else if (error.message && (error.message.includes("Failed to fetch") || error.message.includes("NetworkError") || error.message.includes("fetch failed"))) {
@@ -166,9 +166,9 @@ export async function submitToJudge0(
  */
 export function mapStatusToDbEnum(status: string): "Pending" | "Accepted" | "WA" | "TLE" | "CE" | "RE" {
   if (!status) return "Pending";
-  
+
   const upperStatus = status.trim().toUpperCase();
-  
+
   // 1. Direct short code mapping
   const shortCodeMap: Record<string, "Pending" | "Accepted" | "WA" | "TLE" | "CE" | "RE"> = {
     "AC": "Accepted",
@@ -178,25 +178,25 @@ export function mapStatusToDbEnum(status: string): "Pending" | "Accepted" | "WA"
     "RE": "RE",
     "PENDING": "Pending",
   };
-  
+
   if (shortCodeMap[upperStatus]) {
     return shortCodeMap[upperStatus];
   }
-  
+
   // 2. Loose string matching for common Judge0 description formats
   if (upperStatus.includes("ACCEPT")) return "Accepted";
   if (upperStatus.includes("WRONG") || upperStatus.includes("WA")) return "WA";
   if (upperStatus.includes("TIME LIMIT") || upperStatus.includes("TIMEOUT") || upperStatus.includes("TLE")) return "TLE";
   if (upperStatus.includes("COMPILE") || upperStatus.includes("COMPILATION") || upperStatus.includes("CE")) return "CE";
   if (upperStatus.includes("RUNTIME") || upperStatus.includes("RE")) return "RE";
-  
+
   // 3. Fallback to existing valid database enum strings if they match case-insensitively
   const validEnums = ["Pending", "Accepted", "WA", "TLE", "CE", "RE"];
   const exactMatch = validEnums.find(val => val.toLowerCase() === status.trim().toLowerCase());
   if (exactMatch) {
     return exactMatch as "Pending" | "Accepted" | "WA" | "TLE" | "CE" | "RE";
   }
-  
+
   return "Pending";
 }
 
