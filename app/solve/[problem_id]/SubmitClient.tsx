@@ -103,6 +103,8 @@ export default function SubmitClient({
   const [overall, setOverall] = useState<Verdict | null>(null);
   const [errorOutput, setErrorOutput] = useState<string>("");
   const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const [activeCaseIndex, setActiveCaseIndex] = useState<number | null>(null);
+  const [userHasSelectedCase, setUserHasSelectedCase] = useState<boolean>(false);
   const [viewingCode, setViewingCode] = useState<SubmissionRecord | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
@@ -248,6 +250,8 @@ export default function SubmitClient({
     setOverall(null);
     setErrorOutput("");
     setSubmissionId(null);
+    setActiveCaseIndex(null);
+    setUserHasSelectedCase(false);
 
     try {
       const runResults: CaseResult[] = [];
@@ -314,6 +318,9 @@ export default function SubmitClient({
 
         runResults.push(caseResult);
         setResults([...runResults]);
+        if (!userHasSelectedCase) {
+          setActiveCaseIndex(runResults.length - 1);
+        }
 
         // Compute overall verdict priority
         const priority: Verdict[] = ["CE", "RE", "TLE", "WA", "AC"];
@@ -814,74 +821,121 @@ export default function SubmitClient({
 
         {/* ── Results Panel ── */}
         {(isSubmitting || overall) && (
-          <div className="border-t border-zinc-800 bg-[#0a0a0a] max-h-64 overflow-y-auto">
+          <div className="border-t border-zinc-800 bg-[#0a0a0a] max-h-80 overflow-y-auto flex flex-col">
 
             {/* Overall Verdict Header */}
-            {overallCfg && (
-              <div className={`flex items-center gap-3 px-5 py-3 border-b border-zinc-800 ${overallCfg.bg} border-b`}>
+            {isSubmitting ? (
+              <div className="flex items-center gap-3 px-5 py-3 border-b border-zinc-900 bg-indigo-500/5">
+                <span className="text-indigo-400 flex items-center gap-1.5 font-bold text-sm">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Judging...
+                </span>
+                <span className="text-[10px] text-zinc-500 font-mono">
+                  {results ? `${results.filter((r) => r.status === "AC").length}/${testCases.length} test cases passed` : `0/${testCases.length} test cases passed`}
+                </span>
+              </div>
+            ) : overallCfg ? (
+              <div className={`flex items-center gap-3 px-5 py-3 border-b border-zinc-800 ${overallCfg.bg}`}>
                 <span className={`${overallCfg.color} flex items-center gap-1.5 font-bold text-sm`}>
                   {overallCfg.icon}
                   {overallCfg.label}
                 </span>
                 <span className="text-[10px] text-zinc-500 font-mono">
-                  {results ? `${results.filter((r) => r.status === "AC").length}/${results.length} test cases passed` : ""}
+                  {results ? `${results.filter((r) => r.status === "AC").length}/${testCases.length} test cases passed` : `${testCases.length}/${testCases.length} test cases passed`}
                 </span>
                 {submissionId && (
                   <span className="ml-auto text-[10px] text-zinc-600 font-mono">#{submissionId.slice(0, 8)}</span>
                 )}
               </div>
-            )}
-
-            {/* Loading state */}
-            {isSubmitting && !overall && (
-              <div className="flex items-center gap-3 px-5 py-4 text-zinc-400 text-sm">
-                <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
-                Running against {testCases.length > 0 ? `${testCases.length} test case${testCases.length > 1 ? "s" : ""}` : "sandbox"}...
-              </div>
-            )}
+            ) : null}
 
             {/* Compile/Runtime error */}
             {errorOutput && (
-              <div className="px-5 py-4">
+              <div className="px-5 py-4 border-b border-zinc-900/50 bg-red-950/5">
                 <div className="text-[10px] uppercase text-zinc-600 font-mono mb-2 tracking-widest">Error Output</div>
                 <pre className="text-xs font-mono text-red-400 whitespace-pre-wrap">{errorOutput}</pre>
               </div>
             )}
 
-            {/* Per-Case Results */}
+            {/* Compact Badges Grid */}
             {results && results.length > 0 && (
-              <div className="divide-y divide-zinc-800/50">
-                {results.map((r, i) => {
-                  const cfg = VERDICT_CONFIG[r.status] ?? VERDICT_CONFIG["RE"];
-                  const isErr = r.status === "CE" || r.status === "RE";
+              <div className="flex flex-col bg-[#070707] divide-y divide-zinc-900/40">
+                {/* Horizontal badge row */}
+                <div className="flex flex-wrap gap-2 p-5 max-h-36 overflow-y-auto scrollbar-hide">
+                  {results.map((r, i) => {
+                    const cfg = VERDICT_CONFIG[r.status] ?? VERDICT_CONFIG["RE"];
+                    const isActive = activeCaseIndex === i;
+                    return (
+                      <button
+                        key={r.case_id ?? i}
+                        onClick={() => {
+                          setActiveCaseIndex(i);
+                          setUserHasSelectedCase(true);
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-mono font-semibold transition-all hover:scale-105 active:scale-95 duration-150 cursor-pointer
+                          ${isActive
+                            ? `${cfg.color} ${cfg.bg} border-current shadow-[0_0_12px_rgba(52,211,153,0.15)]`
+                            : 'bg-zinc-950/60 border-zinc-900 text-zinc-500 hover:text-zinc-300 hover:border-zinc-800'
+                          }`}
+                      >
+                        {cfg.icon}
+                        <span>#{i + 1}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Selected Detail Drawer */}
+                {activeCaseIndex !== null && results[activeCaseIndex] && (() => {
+                  const activeCase = results[activeCaseIndex];
+                  const cfg = VERDICT_CONFIG[activeCase.status] ?? VERDICT_CONFIG["RE"];
+                  const isErr = activeCase.status === "CE" || activeCase.status === "RE";
                   return (
-                    <div key={r.case_id ?? i} className="px-5 py-3 flex items-start gap-4">
-                      <div className={`mt-0.5 flex items-center gap-1.5 font-mono text-[11px] font-bold min-w-[110px] ${cfg.color}`}>
-                        {cfg.icon} {cfg.label}
+                    <div className="px-6 py-4 bg-[#0a0a0a] divide-y divide-zinc-900/50 font-mono text-[11px] text-zinc-400">
+                      <div className="flex items-center justify-between pb-2">
+                        <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Testcase #{activeCaseIndex + 1} Execution</span>
+                        <span className={`font-bold flex items-center gap-1.5 ${cfg.color}`}>
+                          {cfg.icon} {cfg.label} · {activeCase.time_ms}ms
+                        </span>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        {isErr && (r.stderr || r.stdout) ? (
-                          <pre className="text-[11px] font-mono text-zinc-400 whitespace-pre-wrap truncate max-h-12 overflow-hidden">
-                            {(r.stderr || r.stdout).slice(0, 300)}
-                          </pre>
-                        ) : r.status === "WA" ? (
-                          <div className="text-[11px] font-mono text-zinc-500 space-y-0.5">
-                            {/* ONLY show expected/got if it's a sample OR current user is teacher OR group setting allows it */}
+                      
+                      <div className="pt-3.5 space-y-2.5">
+                        {isErr && (activeCase.stderr || activeCase.stdout) ? (
+                          <div className="space-y-1">
+                            <div className="text-[9px] uppercase font-bold text-zinc-600">Error Snippet</div>
+                            <pre className="text-[11px] font-mono text-zinc-300 bg-red-950/10 border border-red-500/10 p-3 rounded-lg overflow-x-auto whitespace-pre-wrap max-h-32">
+                              {activeCase.stderr || activeCase.stdout}
+                            </pre>
+                          </div>
+                        ) : activeCase.status === "WA" ? (
+                          <div className="space-y-2">
                             {isTeacher ? (
-                              <>
-                                <div><span className="text-zinc-600">Expected: </span><span className="text-emerald-400">{r.expected.slice(0, 80)}</span></div>
-                                <div><span className="text-zinc-600">Got:      </span><span className="text-red-400">{(r.stdout || "").trim().slice(0, 80)}</span></div>
-                              </>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <div className="text-[9px] uppercase font-bold text-zinc-600 mb-1">Expected Output</div>
+                                  <pre className="p-3 bg-zinc-900/40 border border-zinc-800 rounded-lg text-emerald-400/90 whitespace-pre-wrap overflow-x-auto max-h-24">{activeCase.expected || "(empty)"}</pre>
+                                </div>
+                                <div>
+                                  <div className="text-[9px] uppercase font-bold text-zinc-600 mb-1">Received Output</div>
+                                  <pre className="p-3 bg-zinc-900/40 border border-zinc-800 rounded-lg text-red-400/90 whitespace-pre-wrap overflow-x-auto max-h-24">{(activeCase.stdout || "").trim() || "(empty)"}</pre>
+                                </div>
+                              </div>
                             ) : (
-                              <div className="italic text-zinc-600 tracking-tight">Verdict details are hidden for this project.</div>
+                              <div className="italic text-zinc-500 tracking-tight py-1">Output details are hidden for security. Only sample inputs/outputs are visible to students.</div>
                             )}
                           </div>
-                        ) : null}
+                        ) : activeCase.status === "AC" ? (
+                          <div className="text-emerald-400/80 flex items-center gap-1.5 py-1 font-semibold">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                            Code executed successfully and matched expected outputs!
+                          </div>
+                        ) : (
+                          <div className="text-zinc-500 italic py-1">No detailed execution trace available for this verdict.</div>
+                        )}
                       </div>
-                      <span className="text-[10px] text-zinc-600 font-mono shrink-0">Case {i + 1}</span>
                     </div>
                   );
-                })}
+                })()}
               </div>
             )}
           </div>
