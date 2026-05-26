@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { mapStatusToDbEnum } from "@/utils/judge0";
 
 // Simple in-memory rate limiter (Consider upgrading to Redis for production)
 const rateLimit = new Map<string, { count: number; resetTime: number }>();
@@ -131,7 +132,7 @@ export async function POST(req: Request) {
         student_id: user_id,
         code: source_code,
         language_id,
-        status: currentOverall,
+        status: mapStatusToDbEnum(currentOverall),
         execution_time_ms: maxExecutionTime,
         result_data: runResults
       })

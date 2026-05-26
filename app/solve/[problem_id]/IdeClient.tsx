@@ -4,6 +4,7 @@ import { useState } from "react";
 import Editor from "@monaco-editor/react";
 import { Play, Languages, Send, FlaskConical, ChevronDown, ChevronUp } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { mapStatusToDbEnum } from "@/utils/judge0";
 
 interface Translation {
   language_code: string;
@@ -88,7 +89,7 @@ export default function IdeClient({
         student_id: userId,
         code: code,
         language_id: 1, // C++
-        status: finalStatus,
+        status: mapStatusToDbEnum(finalStatus),
         execution_time_ms: result.time_ms || 0,
         memory_used_kb: 0
       });

@@ -84,7 +84,7 @@ export default async function SolvePage({ params }: { params: Promise<{ problem_
   // Fetch current user's own submissions (for student history)
   const { data: userSubmissions } = await supabaseAdmin
     .from("submissions")
-    .select("*, profiles(username, full_name, avatar_url)")
+    .select("*, profiles:student_id(username, full_name, avatar_url)")
     .eq("problem_id", problem_id)
     .eq("student_id", user.id)
     .order("created_at", { ascending: false });

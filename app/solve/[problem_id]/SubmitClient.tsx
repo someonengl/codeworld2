@@ -365,7 +365,7 @@ export default function SubmitClient({
           <div className="whitespace-pre-wrap font-sans">{currentTrans?.description}</div>
 
           {/* Teacher Activity Panel (only for classroom groups) */}
-          {!isArchive && (isTeacher || allowViewOthers) && allSubmissions && (
+          {(isTeacher || allowViewOthers) && allSubmissions && allSubmissions.length > 0 && (
             <div className="mt-8 border-t border-zinc-800 pt-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 uppercase tracking-widest font-bold">
@@ -441,7 +441,7 @@ export default function SubmitClient({
           )}
 
           {/* Student History Panel (only for students) */}
-          {!isTeacher && userSubmissions && (
+          {userSubmissions && userSubmissions.length > 0 && (
             <div className="mt-8 border-t border-zinc-800 pt-5">
               <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 mb-4 uppercase tracking-widest font-bold">
                 <Clock className="w-4 h-4 text-emerald-500" />
@@ -564,20 +564,28 @@ export default function SubmitClient({
                           <pre className="text-zinc-300 whitespace-pre-wrap break-all text-[11px] font-mono">{tc.input || "(empty)"}</pre>
                         </div>
                         <div className="p-3 bg-zinc-900/20">
-                          <div className="flex justify-between items-center mb-2">
-                            <div className="text-[9px] uppercase font-bold text-zinc-600 tracking-wider">Expected Output</div>
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(tc.expected_output || "");
-                                setCopyOutputSuccess(tc.id);
-                                setTimeout(() => setCopyOutputSuccess(null), 2000);
-                              }}
-                              className="p-1 text-zinc-600 hover:text-emerald-400 transition-colors bg-white/[0.02] rounded-md border border-white/[0.05]"
-                            >
-                              {copyOutputSuccess === tc.id ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
-                            </button>
-                          </div>
-                          <pre className="text-emerald-400/80 whitespace-pre-wrap break-all text-[11px] font-mono">{tc.expected_output || "(empty)"}</pre>
+                          {(isTeacher || tc.is_sample) ? (
+                            <>
+                              <div className="flex justify-between items-center mb-2">
+                                <div className="text-[9px] uppercase font-bold text-zinc-600 tracking-wider">Expected Output</div>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(tc.expected_output || "");
+                                    setCopyOutputSuccess(tc.id);
+                                    setTimeout(() => setCopyOutputSuccess(null), 2000);
+                                  }}
+                                  className="p-1 text-zinc-600 hover:text-emerald-400 transition-colors bg-white/[0.02] rounded-md border border-white/[0.05]"
+                                >
+                                  {copyOutputSuccess === tc.id ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
+                                </button>
+                              </div>
+                              <pre className="text-emerald-400/80 whitespace-pre-wrap break-all text-[11px] font-mono">{tc.expected_output || "(empty)"}</pre>
+                            </>
+                          ) : (
+                            <div className="flex items-center justify-center h-full">
+                              <span className="text-[10px] text-zinc-600 italic font-mono">Expected output hidden</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
