@@ -49,19 +49,35 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Unsupported language: ${language}` }, { status: 400 });
     }
 
-    // 2. Fetch all test cases securely from Supabase (Bypass RLS to get hidden test cases)
-    const supabaseAdmin = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    let testCases: any[] = [];
+    let isMock = problem_id === "mock" || problem_id === "00000000-0000-0000-0000-000000000000";
 
-    const { data: testCases, error: tcError } = await supabaseAdmin
-      .from("test_cases")
-      .select("*")
-      .eq("problem_id", problem_id);
+    if (isMock) {
+      // Mock test cases for testing compiler validation easily
+      testCases = [
+        {
+          id: "mock-case-1",
+          is_sample: true,
+          input: "5\n",
+          expected_output: "10\n",
+        }
+      ];
+    } else {
+      // 2. Fetch all test cases securely from Supabase (Bypass RLS to get hidden test cases)
+      const supabaseAdmin = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
 
-    if (tcError || !testCases || testCases.length === 0) {
-      return NextResponse.json({ error: "Failed to fetch test cases or problem has no test cases" }, { status: 500 });
+      const { data: dbCases, error: tcError } = await supabaseAdmin
+        .from("test_cases")
+        .select("*")
+        .eq("problem_id", problem_id);
+
+      if (tcError || !dbCases || dbCases.length === 0) {
+        return NextResponse.json({ error: "Failed to fetch test cases or problem has no test cases" }, { status: 500 });
+      }
+      testCases = dbCases;
     }
 
     // 3. Evaluate against all test cases
@@ -124,31 +140,39 @@ export async function POST(req: Request) {
     const langIndex = LANGUAGES.indexOf(language);
     const language_id = langIndex >= 0 ? langIndex + 1 : 1; // Fallback to 1 if not found to prevent DB crash
 
-    // 5. Insert submission securely into DB
     const maxExecutionTime = runResults.length > 0 ? Math.max(...runResults.map(r => r.time_ms)) : 0;
+    let submissionId = "mock-submission-id";
 
-    const { data: sub, error: insertErr } = await supabaseAdmin
-      .from("submissions")
-      .insert({
-        problem_id,
-        student_id: user_id,
-        code: source_code,
-        language_id,
-        status: mapStatusToDbEnum(currentOverall),
-        execution_time_ms: maxExecutionTime,
-        result_data: runResults
-      })
-      .select("id")
-      .single();
+    if (!isMock) {
+      const supabaseAdmin = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
 
-    if (insertErr) {
-      console.error("Submission Insert Error:", insertErr);
-      return NextResponse.json({ error: "Failed to save submission to database" }, { status: 500 });
+      const { data: sub, error: insertErr } = await supabaseAdmin
+        .from("submissions")
+        .insert({
+          problem_id,
+          student_id: user_id,
+          code: source_code,
+          language_id,
+          status: mapStatusToDbEnum(currentOverall),
+          execution_time_ms: maxExecutionTime,
+          result_data: runResults
+        })
+        .select("id")
+        .single();
+
+      if (insertErr) {
+        console.error("Submission Insert Error:", insertErr);
+        return NextResponse.json({ error: "Failed to save submission to database" }, { status: 500 });
+      }
+      submissionId = sub?.id || "";
     }
 
     // 6. Return secure result to client
     return NextResponse.json({
-      submission_id: sub?.id,
+      submission_id: submissionId,
       overall_status: currentOverall,
       results: runResults
     });
