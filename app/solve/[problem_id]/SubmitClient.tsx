@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Upload, ChevronDown, ChevronUp, FlaskConical, CheckCircle2, XCircle, AlertCircle, Clock, Loader2, X, Copy, Check } from "lucide-react";
+import { Send, Upload, ChevronDown, ChevronUp, FlaskConical, CheckCircle2, XCircle, AlertCircle, Clock, Loader2, X, Copy, Check, MinusCircle } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import Editor from "@monaco-editor/react";
@@ -20,7 +20,7 @@ interface TestCase {
   is_sample: boolean;
 }
 
-type Verdict = "AC" | "WA" | "TLE" | "CE" | "RE" | "Pending";
+type Verdict = "AC" | "WA" | "TLE" | "CE" | "RE" | "Pending" | "Skipped";
 
 interface CaseResult {
   case_id: string;
@@ -65,6 +65,7 @@ const VERDICT_CONFIG: Record<Verdict, { label: string; color: string; bg: string
   CE:      { label: "Compile Error",    color: "text-orange-400",  bg: "bg-orange-500/10 border-orange-500/30",   icon: <AlertCircle className="w-4 h-4" /> },
   RE:      { label: "Runtime Error",    color: "text-rose-400",    bg: "bg-rose-500/10 border-rose-500/30",       icon: <AlertCircle className="w-4 h-4" /> },
   Pending: { label: "Pending",          color: "text-zinc-400",    bg: "bg-zinc-800/50 border-zinc-700",          icon: <Loader2 className="w-4 h-4 animate-spin" /> },
+  Skipped: { label: "Skipped",          color: "text-zinc-600",    bg: "bg-zinc-950/20 border-zinc-900/40",       icon: <MinusCircle className="w-4 h-4" /> },
 };
 export default function SubmitClient({
   problemId,
@@ -98,6 +99,7 @@ export default function SubmitClient({
   const [code, setCode] = useState(LANGUAGES[0].template);
   const [displayLang, setDisplayLang] = useState(translations[0]?.language_code ?? "EN");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState<number>(0);
   const [showSamples, setShowSamples] = useState(true);
   const [results, setResults] = useState<CaseResult[] | null>(null);
   const [overall, setOverall] = useState<Verdict | null>(null);
@@ -110,6 +112,27 @@ export default function SubmitClient({
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
   const [copyOutputSuccess, setCopyOutputSuccess] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const isMounted = useRef(true);
+  const activeIntervalIdsRef = useRef<any[]>([]);
+  const activeTimeoutIdsRef = useRef<any[]>([]);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      activeIntervalIdsRef.current.forEach(id => clearInterval(id));
+      activeTimeoutIdsRef.current.forEach(id => clearTimeout(id));
+    };
+  }, []);
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const timer = setTimeout(() => {
+      setCooldownSeconds(prev => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [cooldownSeconds]);
+
   const supabase = createClient();
 
   const sampleCases = testCases.filter((tc) => tc.is_sample);
@@ -223,6 +246,9 @@ export default function SubmitClient({
 
   function getVerdictFromStatusId(statusId: number): Verdict {
     switch (statusId) {
+      case 1: // In Queue
+      case 2: // Processing
+        return "Pending";
       case 3: return "AC";
       case 4: return "WA";
       case 5: return "TLE";
@@ -244,9 +270,52 @@ export default function SubmitClient({
 
 
   async function handleSubmit() {
-    if (isSubmitting || !code.trim()) return;
+    if (isSubmitting || cooldownSeconds > 0 || !code.trim()) return;
+    if (!testCases || testCases.length === 0) {
+      setErrorOutput("Error: No test cases are defined for this problem. Please contact the teacher/administrator.");
+      return;
+    }
+
+    // 2. SECURITY: ANTI-ZIP BOMB PROTECTION (Decompression Defense)
+    const maxSingleInputSize = 50 * 1024; // 50KB per single testcase input
+    const maxTotalPayloadSize = 2 * 1024 * 1024; // 2MB total payload limit
+
+    let totalPayloadSize = code.length;
+    for (const tc of testCases) {
+      const inputLen = (tc.input || "").length;
+      const expectedLen = (tc.expected_output || "").length;
+      if (inputLen > maxSingleInputSize || expectedLen > maxSingleInputSize) {
+        setErrorOutput("Payload size limit exceeded: A single testcase input or expected output exceeds 50KB. Submission blocked.");
+        return;
+      }
+      totalPayloadSize += inputLen + expectedLen;
+    }
+
+    if (totalPayloadSize > maxTotalPayloadSize) {
+      setErrorOutput("Payload size limit exceeded: Total submission payload size exceeds 2MB. Submission blocked.");
+      return;
+    }
+
     setIsSubmitting(true);
-    setResults([]);
+    setCooldownSeconds(5); // Enforce a hard 5-second cooldown clock
+
+    // Prevent any leaks by clearing previously running timers
+    activeIntervalIdsRef.current.forEach(id => clearInterval(id));
+    activeIntervalIdsRef.current = [];
+    activeTimeoutIdsRef.current.forEach(id => clearTimeout(id));
+    activeTimeoutIdsRef.current = [];
+
+    const initialResults: CaseResult[] = testCases.map((tc) => ({
+      case_id: tc.id,
+      is_sample: tc.is_sample,
+      status: "Pending",
+      stdout: "",
+      stderr: "",
+      expected: tc.is_sample || isTeacher || allowViewTestcases ? tc.expected_output : "[HIDDEN]",
+      time_ms: 0
+    }));
+    setResults(initialResults);
+
     setOverall(null);
     setErrorOutput("");
     setSubmissionId(null);
@@ -254,27 +323,47 @@ export default function SubmitClient({
     setUserHasSelectedCase(false);
 
     try {
-      const runResults: CaseResult[] = [];
-      let currentOverall: Verdict = "AC";
+      const safeBtoa = (str: string) => {
+        try {
+          return btoa(unescape(encodeURIComponent(str)));
+        } catch {
+          return btoa(str);
+        }
+      };
+
+      const safeAtob = (str: string | null | undefined) => {
+        if (!str) return "";
+        try {
+          return atob(str);
+        } catch {
+          return str;
+        }
+      };
+
       const judge0LangId = getJudge0LanguageId(lang);
 
-      for (let i = 0; i < testCases.length; i++) {
-        const tc = testCases[i];
-        
-        const encodedSource = btoa(code);
-        const encodedStdin = btoa(tc.input || "");
-        
-        const response = await fetch("https://judge0myownserver.store/submissions?wait=true&base64_encoded=true", {
+      // 1. Break the testCases array into manageable chunks of 30 items
+      const chunkSize = 30;
+      const runResults = [...initialResults];
+
+      for (let chunkStart = 0; chunkStart < testCases.length; chunkStart += chunkSize) {
+        const chunk = testCases.slice(chunkStart, chunkStart + chunkSize);
+
+        const payload = {
+          submissions: chunk.map((tc: any) => ({
+            source_code: safeBtoa(code),
+            language_id: Number(judge0LangId) || 54,
+            stdin: safeBtoa(tc.input || ""),
+            expected_output: safeBtoa(tc.expected_output || "")
+          }))
+        };
+
+        const response = await fetch("https://judge0myownserver.store/submissions/batch?base64_encoded=true", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({
-            source_code: encodedSource,
-            language_id: judge0LangId,
-            stdin: encodedStdin,
-            base64_encoded: true
-          })
+          body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
@@ -282,60 +371,148 @@ export default function SubmitClient({
           throw new Error(errDetail);
         }
 
-        const data = await response.json();
-        const safeAtob = (str: string | null | undefined) => {
-          if (!str) return "";
-          try {
-            return atob(str);
-          } catch {
-            return str;
-          }
-        };
+        const postData = await response.json(); // Array of tokens: [{ token: "..." }, ...]
+        const chunkTokens = postData.map((item: any) => item.token).filter(Boolean);
 
-        const stdout = safeAtob(data.stdout);
-        const stderr = safeAtob(data.stderr || data.compile_output);
-        const time = data.time ? Math.round(parseFloat(data.time) * 1000) : 0;
-        const statusCode = data.status?.id || 0;
-
-        let status: Verdict = getVerdictFromStatusId(statusCode);
-
-        const actual = stdout.trim();
-        const expected = (tc.expected_output || "").trim();
-
-        if (status === "AC") {
-          status = actual === expected ? "AC" : "WA";
+        if (chunkTokens.length === 0) {
+          throw new Error("Failed to retrieve valid tracking tokens from evaluation clusters.");
         }
 
-        const caseResult: CaseResult = {
-          case_id: tc.id,
-          is_sample: tc.is_sample,
-          status: status,
-          stdout: tc.is_sample || isTeacher || allowViewTestcases ? stdout : "[HIDDEN]",
-          stderr: stderr,
-          expected: tc.is_sample || isTeacher || allowViewTestcases ? tc.expected_output : "[HIDDEN]",
-          time_ms: time
-        };
+        // Wait for this chunk to complete polling before advancing to the next chunk
+        await new Promise<void>((resolveChunk, rejectChunk) => {
+          let pollDelay = 2000; // Base delay: 2000ms
 
-        runResults.push(caseResult);
-        setResults([...runResults]);
-        if (!userHasSelectedCase) {
-          setActiveCaseIndex(runResults.length - 1);
+          const pollStatus = async () => {
+            if (!isMounted.current) {
+              rejectChunk(new Error("Component unmounted"));
+              return;
+            }
+
+            try {
+              const tokensString = chunkTokens.join(",");
+              const pollResponse = await fetch(`https://judge0myownserver.store/submissions/batch?tokens=${tokensString}&base64_encoded=true&fields=status_id,status,compile_output,stdout,time,memory`, {
+                method: "GET"
+              });
+
+              if (!pollResponse.ok) {
+                // If a poll request returns a server error status (HTTP 502, 504, or Cloudflare rate-limit 429)
+                if (pollResponse.status === 429 || pollResponse.status >= 500) {
+                  pollDelay = Math.min(pollDelay * 2, 16000); // Exponential backoff up to 16 seconds
+                  console.warn(`Server rate limit/error encountered (HTTP ${pollResponse.status}). Applying backoff delay: ${pollDelay}ms`);
+                }
+                const timerId = setTimeout(pollStatus, pollDelay);
+                activeTimeoutIdsRef.current.push(timerId);
+                return;
+              }
+
+              // Reset backoff delay on successful response
+              pollDelay = 2000;
+
+              const pollData = await pollResponse.json();
+              const subs = pollData.submissions || (Array.isArray(pollData) ? pollData : []);
+
+              // Update real-time results keeping index ordering intact
+              if (isMounted.current) {
+                subs.forEach((data: any, localIdx: number) => {
+                  if (!data) return;
+                  const globalIdx = chunkStart + localIdx;
+                  const tc = testCases[globalIdx];
+                  if (!tc) return;
+                  const stdout = safeAtob(data.stdout);
+                  const stderr = safeAtob(data.stderr || data.compile_output);
+                  const time = data.time ? Math.round(parseFloat(data.time) * 1000) : 0;
+                  const statusCode = data.status?.id || data.status_id || 0;
+
+                  let status: Verdict = getVerdictFromStatusId(statusCode);
+                  const actual = stdout.trim();
+                  const expected = (tc.expected_output || "").trim();
+
+                  if (status === "AC" && statusCode >= 3) {
+                    status = actual === expected ? "AC" : "WA";
+                  }
+
+                  runResults[globalIdx] = {
+                    case_id: tc.id,
+                    is_sample: tc.is_sample,
+                    status: status,
+                    stdout: tc.is_sample || isTeacher || allowViewTestcases ? stdout : "[HIDDEN]",
+                    stderr: stderr,
+                    expected: tc.is_sample || isTeacher || allowViewTestcases ? tc.expected_output : "[HIDDEN]",
+                    time_ms: time
+                  };
+                });
+
+                // Display current results
+                setResults([...runResults]);
+                
+                // Move active tab automatically if needed
+                if (!userHasSelectedCase) {
+                  const completedIndex = runResults.findIndex(r => r.status !== "Pending");
+                  if (completedIndex !== -1) {
+                    setActiveCaseIndex(completedIndex);
+                  }
+                }
+              }
+
+              // Check if every single item in this chunk has completed (status_id >= 3)
+              const allFinished = subs.length > 0 && subs.every((sub: any) => {
+                const statusId = sub.status?.id || sub.status_id || 0;
+                return statusId >= 3;
+              });
+
+              if (allFinished) {
+                resolveChunk();
+              } else {
+                const timerId = setTimeout(pollStatus, pollDelay);
+                activeTimeoutIdsRef.current.push(timerId);
+              }
+            } catch (err) {
+              // Apply exponential backoff on network connection failures
+              pollDelay = Math.min(pollDelay * 2, 16000);
+              console.error("Network polling error, backing off:", err);
+              const timerId = setTimeout(pollStatus, pollDelay);
+              activeTimeoutIdsRef.current.push(timerId);
+            }
+          };
+
+          // Initiate first poll
+          const timerId = setTimeout(pollStatus, pollDelay);
+          activeTimeoutIdsRef.current.push(timerId);
+        });
+      }
+
+      if (!isMounted.current) return;
+
+      // 4. Collect final complete results (marking skipped/unreached ones as "Skipped")
+      const finalResults = runResults.map((res) => {
+        if (res.status === "Pending") {
+          return {
+            ...res,
+            status: "Skipped" as Verdict
+          };
         }
+        return res;
+      });
 
-        // Compute overall verdict priority
-        const priority: Verdict[] = ["CE", "RE", "TLE", "WA", "AC"];
-        const currentScore = priority.indexOf(status);
+      if (isMounted.current) {
+        setResults(finalResults);
+      }
+
+      // Compute overall verdict priority across all results
+      let currentOverall: Verdict = "AC";
+      const priority: Verdict[] = ["CE", "RE", "TLE", "WA", "AC", "Skipped"];
+      for (const res of finalResults) {
+        const currentScore = priority.indexOf(res.status);
         const overallScore = priority.indexOf(currentOverall);
         if (currentScore < overallScore) {
-          currentOverall = status;
+          currentOverall = res.status;
         }
-        if (status === "CE" || status === "RE") break;
       }
 
       setOverall(currentOverall);
 
       // Insert directly into Supabase database securely
-      const maxExecutionTime = runResults.length > 0 ? Math.max(...runResults.map(r => r.time_ms)) : 0;
+      const maxExecutionTime = finalResults.length > 0 ? Math.max(...finalResults.map(r => r.time_ms)) : 0;
       const langIndex = ["cpp", "c", "python", "java", "js", "go", "rust", "kotlin"].indexOf(lang);
       const language_id = langIndex >= 0 ? langIndex + 1 : 1;
 
@@ -348,10 +525,12 @@ export default function SubmitClient({
           language_id: language_id,
           status: mapVerdictToDbEnum(currentOverall),
           execution_time_ms: maxExecutionTime,
-          result_data: runResults
+          result_data: finalResults
         })
         .select("id")
         .single();
+
+      if (!isMounted.current) return;
 
       if (insertErr) {
         console.error("Submission DB Insert Error:", insertErr);
@@ -362,10 +541,13 @@ export default function SubmitClient({
       }
 
     } catch (err: any) {
+      if (!isMounted.current) return;
       setErrorOutput(err.message || "Failed to communicate directly with the production Judge0 server.");
       setOverall("RE");
     } finally {
-      setIsSubmitting(false);
+      if (isMounted.current) {
+        setIsSubmitting(false);
+      }
     }
   }
 
@@ -760,15 +942,17 @@ export default function SubmitClient({
           <button
             id="submit-btn"
             onClick={handleSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || cooldownSeconds > 0}
             className={`flex items-center gap-2 px-5 py-2 rounded-xl font-bold text-sm transition-all
-              ${isSubmitting
+              ${(isSubmitting || cooldownSeconds > 0)
                 ? "bg-white/[0.04] text-zinc-600 cursor-not-allowed"
                 : "bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_20px_rgba(52,211,153,0.2)] hover:shadow-[0_0_30px_rgba(52,211,153,0.35)] hover:-translate-y-0.5"
               }`}
           >
             {isSubmitting ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Judging...</>
+            ) : cooldownSeconds > 0 ? (
+              <><Clock className="w-4 h-4 animate-spin" /> Cooldown ({cooldownSeconds}s)</>
             ) : (
               <><Send className="w-4 h-4" /> Submit</>
             )}

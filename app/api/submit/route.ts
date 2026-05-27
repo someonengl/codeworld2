@@ -45,12 +45,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // 1. INPUT WHITELISTING AND TYPE ENFORCEMENT
     if (!LANGUAGES.includes(language)) {
       return NextResponse.json({ error: `Unsupported language: ${language}` }, { status: 400 });
     }
 
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const isMock = problem_id === "mock" || problem_id === "00000000-0000-0000-0000-000000000000";
+
+    if (!isMock && !UUID_REGEX.test(problem_id)) {
+      return NextResponse.json({ error: "Invalid problem ID format. Must be a valid UUID." }, { status: 400 });
+    }
+
+    if (typeof user_id !== "string" || !UUID_REGEX.test(user_id)) {
+      return NextResponse.json({ error: "Invalid user ID format. Must be a valid UUID." }, { status: 400 });
+    }
+
+    if (time_limit_ms !== undefined && (typeof time_limit_ms !== "number" || time_limit_ms < 100 || time_limit_ms > 15000)) {
+      return NextResponse.json({ error: "Invalid time limit. Must be a number between 100 and 15000." }, { status: 400 });
+    }
+
     let testCases: any[] = [];
-    let isMock = problem_id === "mock" || problem_id === "00000000-0000-0000-0000-000000000000";
 
     if (isMock) {
       // Mock test cases for testing compiler validation easily
@@ -80,14 +95,10 @@ export async function POST(req: Request) {
       testCases = dbCases;
     }
 
-    // 3. Evaluate against all test cases
-    const runResults: any[] = [];
-    let currentOverall = "AC";
+    // 3. Evaluate against all test cases concurrently using Promise.all()
     const judge0LangId = getJudge0LanguageId(language);
 
-    for (let i = 0; i < testCases.length; i++) {
-      const tc = testCases[i];
-      
+    const evaluatePromises = testCases.map(async (tc) => {
       let res;
       if (isMock) {
         // Direct route-level offline simulation fallback
@@ -103,7 +114,7 @@ export async function POST(req: Request) {
           memory: 1240,
         };
       } else {
-        // Call your self-hosted Judge0 server
+        // Call your self-hosted Judge0 server concurrently
         res = await submitToJudge0(source_code, judge0LangId, tc.input || "", time_limit_ms || 15000, isMock);
       }
       
@@ -130,7 +141,7 @@ export async function POST(req: Request) {
       }
 
       // Add to results
-      const caseResult = {
+      return {
         case_id: tc.id,
         is_sample: tc.is_sample,
         status: status,
@@ -139,16 +150,18 @@ export async function POST(req: Request) {
         expected: tc.is_sample ? expected : "[HIDDEN]",
         time_ms: Math.round(res.time * 1000), // convert seconds to ms
       };
+    });
 
-      runResults.push(caseResult);
+    const runResults = await Promise.all(evaluatePromises);
 
-      // Compute overall verdict
-      const priority = ["CE", "RE", "TLE", "WA", "AC"];
-      const currentScore = priority.indexOf(status);
+    // Compute overall verdict
+    let currentOverall = "AC";
+    const priority = ["CE", "RE", "TLE", "WA", "AC"];
+    for (const r of runResults) {
+      const currentScore = priority.indexOf(r.status);
       const overallScore = priority.indexOf(currentOverall);
       if (currentScore < overallScore) {
-        currentOverall = status;
-        if (status === "CE" || status === "RE") break;
+        currentOverall = r.status;
       }
     }
 

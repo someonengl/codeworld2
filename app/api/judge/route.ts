@@ -36,6 +36,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing source_code or language" }, { status: 400 });
     }
 
+    const LANGUAGES = ["cpp", "c", "python", "java", "js", "go", "rust", "kotlin"];
+    if (!LANGUAGES.includes(language)) {
+      return NextResponse.json({ error: `Unsupported language: ${language}` }, { status: 400 });
+    }
+
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (user_id && user_id !== "mock-user" && !UUID_REGEX.test(user_id)) {
+      return NextResponse.json({ error: "Invalid user ID format. Must be a valid UUID." }, { status: 400 });
+    }
+
+    if (time_limit_ms !== undefined && (typeof time_limit_ms !== "number" || time_limit_ms < 100 || time_limit_ms > 15000)) {
+      return NextResponse.json({ error: "Invalid time limit. Must be a number between 100 and 15000." }, { status: 400 });
+    }
+
     const judge0LangId = getJudge0LanguageId(language);
 
     // Detect if this is an offline playground mock run
