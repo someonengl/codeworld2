@@ -1,0 +1,38 @@
+#!/bin/bash
+# =============================================================================
+# CodeWorld Production Start Script
+# Launches cloudflared tunnel sidecar + Next.js server on Render
+# =============================================================================
+
+# Only launch cloudflared in production when service tokens are configured
+if [ -n "$CF_CLIENT_ID" ] && [ -n "$CF_CLIENT_SECRET" ]; then
+  echo "🔒 Production mode: Starting Cloudflare Tunnel sidecar..."
+
+  # Launch cloudflared TCP proxy in the background
+  # This listens on 127.0.0.1:3306 and tunnels traffic to nobasstorage.online
+  # with Cloudflare Access service token authentication
+  cloudflared access tcp \
+    --hostname "$CF_TUNNEL_HOSTNAME" \
+    --listener 127.0.0.1:3306 \
+    --id "$CF_CLIENT_ID" \
+    --secret "$CF_CLIENT_SECRET" &
+
+  CLOUDFLARED_PID=$!
+  echo "✅ cloudflared started (PID: $CLOUDFLARED_PID), waiting for tunnel to initialize..."
+
+  # Give cloudflared a moment to bind to the local port
+  sleep 3
+
+  # Verify it's still running
+  if kill -0 $CLOUDFLARED_PID 2>/dev/null; then
+    echo "✅ Cloudflare Tunnel sidecar is healthy and listening on 127.0.0.1:3306"
+  else
+    echo "❌ WARNING: cloudflared exited unexpectedly. Database connections will fail."
+  fi
+else
+  echo "ℹ️  No CF_CLIENT_ID/CF_CLIENT_SECRET found. Running without tunnel sidecar (local dev mode)."
+fi
+
+# Start the Next.js production server
+echo "🚀 Starting Next.js production server..."
+exec npm run start

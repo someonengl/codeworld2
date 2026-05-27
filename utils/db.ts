@@ -16,12 +16,20 @@ let pool: mysql.Pool;
 if (databaseUrl) {
   try {
     const parsed = new URL(databaseUrl);
-    const host = parsed.hostname;
-    const port = parsed.port ? parseInt(parsed.port, 10) : 3306;
+    let host = parsed.hostname;
+    let port = parsed.port ? parseInt(parsed.port, 10) : 3306;
     const user = decodeURIComponent(parsed.username);
     const password = decodeURIComponent(parsed.password);
     const database = parsed.pathname.substring(1); // remove leading slash
-    
+
+    // In production on Render, cloudflared sidecar listens on 127.0.0.1:3306
+    // Override the host to route through the local tunnel bridge
+    if (process.env.CF_CLIENT_ID && process.env.CF_CLIENT_SECRET) {
+      console.log("🔒 Production tunnel detected: routing database traffic through cloudflared sidecar at 127.0.0.1:3306");
+      host = '127.0.0.1';
+      port = 3306;
+    }
+
     pool = mysql.createPool({
       host,
       port,
