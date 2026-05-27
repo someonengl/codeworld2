@@ -26,12 +26,13 @@ export async function POST(request: NextRequest) {
       const [dbResult] = await db.query(sql, [input]);
       rows = dbResult;
     } catch (dbErr: any) {
+      console.error("DB_EXECUTION_FAILURE:", dbErr);
       console.error("DETAILED_LOGIN_ERROR DB_QUERY_FAILURE:", dbErr);
       return NextResponse.json({ error: 'Database connection or query failure.' }, { status: 500 });
     }
 
-    if (!rows || rows.length === 0) {
-      return NextResponse.json({ error: 'Invalid username/email or password.' }, { status: 400 });
+    if (!rows || !Array.isArray(rows) || rows.length === 0) {
+      return NextResponse.json({ error: 'Invalid username/email or password.' }, { status: 401 });
     }
 
     const user = rows[0];

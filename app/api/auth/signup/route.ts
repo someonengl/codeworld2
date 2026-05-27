@@ -16,13 +16,29 @@ export async function POST(request: NextRequest) {
     const cleanEmail = email.trim().toLowerCase();
 
     // Check duplicate email
-    const [existingEmail]: any = await db.query('SELECT id FROM profiles WHERE email = ?', [cleanEmail]);
+    let existingEmail: any;
+    try {
+      const [emailQueryResults]: any = await db.query('SELECT id FROM profiles WHERE email = ?', [cleanEmail]);
+      existingEmail = emailQueryResults;
+    } catch (err: any) {
+      console.error("DB_EXECUTION_FAILURE SELECT_EMAIL:", err);
+      return NextResponse.json({ error: 'Database check failed.' }, { status: 500 });
+    }
+
     if (existingEmail && existingEmail.length > 0) {
       return NextResponse.json({ error: 'Email already registered.' }, { status: 400 });
     }
 
     // Check duplicate username
-    const [existingUser]: any = await db.query('SELECT id FROM profiles WHERE username = ?', [cleanUsername]);
+    let existingUser: any;
+    try {
+      const [userQueryResults]: any = await db.query('SELECT id FROM profiles WHERE username = ?', [cleanUsername]);
+      existingUser = userQueryResults;
+    } catch (err: any) {
+      console.error("DB_EXECUTION_FAILURE SELECT_USERNAME:", err);
+      return NextResponse.json({ error: 'Database check failed.' }, { status: 500 });
+    }
+
     if (existingUser && existingUser.length > 0) {
       return NextResponse.json({ error: 'Username already taken.' }, { status: 400 });
     }
@@ -30,10 +46,15 @@ export async function POST(request: NextRequest) {
     const userId = crypto.randomUUID();
     const passwordHash = hashPassword(password);
 
-    await db.query(
-      `INSERT INTO profiles (id, username, email, password_hash, full_name, role) VALUES (?, ?, ?, ?, ?, 'normal')`,
-      [userId, cleanUsername, cleanEmail, passwordHash, full_name || username]
-    );
+    try {
+      await db.query(
+        `INSERT INTO profiles (id, username, email, password_hash, full_name, role) VALUES (?, ?, ?, ?, ?, 'normal')`,
+        [userId, cleanUsername, cleanEmail, passwordHash, full_name || username]
+      );
+    } catch (err: any) {
+      console.error("DB_EXECUTION_FAILURE INSERT_PROFILE:", err);
+      return NextResponse.json({ error: 'Failed to create user account.' }, { status: 500 });
+    }
 
     const userPayload = {
       id: userId,
