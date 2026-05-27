@@ -1,109 +1,167 @@
 import mysql from 'mysql2/promise';
+import { WebSocket, createWebSocketStream } from 'ws';
 
-const globalForDb = global as unknown as { db: mysql.Pool | undefined };
+const globalForDb = global as unknown as { db: any };
 
 const databaseUrl = process.env.DATABASE_URL;
+const cfClientId = process.env.CF_ACCESS_CLIENT_ID;
+const cfClientSecret = process.env.CF_ACCESS_CLIENT_SECRET;
+const tunnelHostname = process.env.CF_TUNNEL_HOSTNAME || 'nobasstorage.online';
 
 // ============ RENDER DEBUG BOOT LOG ============
 console.log("=== RENDER_DB_BOOT_LOG ===");
 console.log("  NODE_ENV:", process.env.NODE_ENV);
 console.log("  DATABASE_URL defined:", !!databaseUrl);
 console.log("  DATABASE_URL value:", databaseUrl ? databaseUrl.replace(/:[^:@]+@/, ':***@') : 'MISSING');
-console.log("  DB_BRIDGE_URL defined:", !!process.env.DB_BRIDGE_URL);
-console.log("  BRIDGE_SECRET defined:", !!process.env.BRIDGE_SECRET);
-console.log("  CF_CLIENT_ID defined:", !!process.env.CF_CLIENT_ID);
-console.log("  CF_CLIENT_SECRET defined:", !!process.env.CF_CLIENT_SECRET);
+console.log("  CF_ACCESS_CLIENT_ID defined:", !!cfClientId);
+console.log("  CF_ACCESS_CLIENT_SECRET defined:", !!cfClientSecret);
+console.log("  CF_TUNNEL_HOSTNAME:", tunnelHostname);
 console.log("===========================");
 
 // ---------------------------------------------------------------------------
-// PRODUCTION: HTTPS Database Bridge
-// When DB_BRIDGE_URL is set, queries are sent via HTTP POST to the bridge
-// server running on the home network (exposed via Cloudflare Tunnel).
-// The Cloudflare Access service token headers are injected automatically.
+// Parse DATABASE_URL into individual connection tokens (used by both modes)
 // ---------------------------------------------------------------------------
-function createHttpBridge() {
-  const bridgeUrl = process.env.DB_BRIDGE_URL!;        // e.g. https://nobasstorage.online/query
-  const bridgeSecret = process.env.BRIDGE_SECRET || '';
-  const cfClientId = process.env.CF_CLIENT_ID || '';
-  const cfClientSecret = process.env.CF_CLIENT_SECRET || '';
+let dbUser = '';
+let dbPassword = '';
+let dbDatabase = '';
+let dbHost = '127.0.0.1';
+let dbPort = 3306;
 
-  console.log("🌉 Production mode: Using HTTPS Database Bridge");
-  console.log("   Bridge URL:", bridgeUrl);
+if (databaseUrl) {
+  try {
+    const parsed = new URL(databaseUrl);
+    dbHost = parsed.hostname;
+    dbPort = parsed.port ? parseInt(parsed.port, 10) : 3306;
+    dbUser = decodeURIComponent(parsed.username);
+    dbPassword = decodeURIComponent(parsed.password);
+    dbDatabase = parsed.pathname.substring(1);
+  } catch (err) {
+    console.error("=== DATABASE_URL_PARSE_ERROR ===", err);
+  }
+}
 
-  const bridge = {
-    async query(sql: string, values?: any[]): Promise<[any[], any[]]> {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'X-Bridge-Secret': bridgeSecret,
-      };
+// ---------------------------------------------------------------------------
+// PRODUCTION: WebSocket Tunnel Pool
+// Creates authenticated WebSocket connections through Cloudflare Access,
+// wraps them in Duplex streams, and passes them to mysql2 as the transport.
+// Each query gets its own tunnel connection for correctness.
+// ---------------------------------------------------------------------------
+function createWebSocketTunnelPool() {
+  console.log("🔒 Production mode: WebSocket tunnel pool");
+  console.log("   Tunnel target: wss://" + tunnelHostname);
 
-      // Inject Cloudflare Access service token headers if available
-      if (cfClientId) headers['CF-Access-Client-Id'] = cfClientId;
-      if (cfClientSecret) headers['CF-Access-Client-Secret'] = cfClientSecret;
+  /**
+   * Opens a single authenticated WebSocket tunnel to Cloudflare Access,
+   * wraps it in a Duplex stream, and creates a mysql2 connection over it.
+   */
+  async function createTunnelConnection(): Promise<mysql.Connection> {
+    return new Promise((resolve, reject) => {
+      const wsUrl = `wss://${tunnelHostname}`;
 
-      const response = await fetch(bridgeUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ sql, values: values || [] }),
+      console.log("  🌐 Opening WebSocket tunnel to:", wsUrl);
+
+      const ws = new WebSocket(wsUrl, {
+        headers: {
+          'CF-Access-Client-Id': cfClientId!,
+          'CF-Access-Client-Secret': cfClientSecret!,
+        },
+        // Ensure binary framing for MySQL protocol bytes
+        perMessageDeflate: false,
       });
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        console.error("=== BRIDGE_QUERY_FAILURE ===", response.status, errorBody);
-        throw new Error(`Bridge query failed (${response.status}): ${errorBody}`);
+      const timeout = setTimeout(() => {
+        ws.terminate();
+        reject(new Error('WebSocket tunnel connection timed out after 15s'));
+      }, 15000);
+
+      ws.on('error', (err) => {
+        clearTimeout(timeout);
+        console.error("  ❌ WebSocket tunnel error:", err.message);
+        reject(err);
+      });
+
+      ws.on('open', async () => {
+        clearTimeout(timeout);
+        console.log("  ✅ WebSocket tunnel opened successfully");
+
+        try {
+          // Wrap the WebSocket in a Node.js Duplex stream
+          const duplex = createWebSocketStream(ws, { decodeStrings: false });
+
+          // Create a mysql2 connection using the WebSocket stream as transport
+          const conn = await mysql.createConnection({
+            user: dbUser,
+            password: dbPassword,
+            database: dbDatabase,
+            stream: duplex as any,
+            connectTimeout: 10000,
+          });
+
+          console.log("  ✅ MySQL handshake completed over WebSocket tunnel");
+          resolve(conn);
+        } catch (err: any) {
+          console.error("  ❌ MySQL handshake over tunnel failed:", err.message);
+          ws.terminate();
+          reject(err);
+        }
+      });
+    });
+  }
+
+  // Return a pool-compatible interface
+  return {
+    async query(sql: string, values?: any[]) {
+      let conn: mysql.Connection | null = null;
+      try {
+        conn = await createTunnelConnection();
+        const result = await conn.query(sql, values);
+        return result;
+      } catch (err: any) {
+        console.error("=== TUNNEL_QUERY_FAILURE ===", err.message);
+        throw err;
+      } finally {
+        if (conn) {
+          try { await conn.end(); } catch { /* ignore cleanup errors */ }
+        }
       }
-
-      const result = await response.json();
-
-      if (result.error) {
-        throw new Error(`Bridge DB error: ${result.error}`);
-      }
-
-      // Return in mysql2-compatible format: [rows, fields]
-      return [result.rows, result.fields || []];
     },
 
-    // Pool-compatible methods used by the codebase
+    // Compatibility stubs
     async getConnection() {
-      return { query: bridge.query, release: () => {} };
+      const conn = await createTunnelConnection();
+      return {
+        query: conn.query.bind(conn),
+        release: () => conn.end().catch(() => {}),
+      };
     },
-    async end() { /* no-op for HTTP bridge */ }
+    async end() { /* no-op */ },
   };
-
-  return bridge;
 }
 
 // ---------------------------------------------------------------------------
 // LOCAL: Standard mysql2 Connection Pool
-// When running locally, connect directly to MariaDB via TCP.
+// Direct TCP connection to MariaDB on the local network.
 // ---------------------------------------------------------------------------
-function createLocalPool(url: string): mysql.Pool {
-  const parsed = new URL(url);
-  const host = parsed.hostname;
-  const port = parsed.port ? parseInt(parsed.port, 10) : 3306;
-  const user = decodeURIComponent(parsed.username);
-  const password = decodeURIComponent(parsed.password);
-  const database = parsed.pathname.substring(1);
-
-  console.log("=== DB_POOL_CONFIG ===");
-  console.log("  Host:", host);
-  console.log("  Port:", port);
-  console.log("  User:", user);
-  console.log("  Database:", database);
-  console.log("======================");
+function createLocalPool(): mysql.Pool {
+  console.log("=== LOCAL_DB_POOL_CONFIG ===");
+  console.log("  Host:", dbHost);
+  console.log("  Port:", dbPort);
+  console.log("  User:", dbUser);
+  console.log("  Database:", dbDatabase);
+  console.log("===========================");
 
   return mysql.createPool({
-    host,
-    port,
-    user,
-    password,
-    database,
+    host: dbHost,
+    port: dbPort,
+    user: dbUser,
+    password: dbPassword,
+    database: dbDatabase,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
     connectTimeout: 10000,
     enableKeepAlive: true,
-    keepAliveInitialDelay: 0
+    keepAliveInitialDelay: 0,
   });
 }
 
@@ -112,18 +170,18 @@ function createLocalPool(url: string): mysql.Pool {
 // ---------------------------------------------------------------------------
 let pool: any = null;
 
-if (process.env.DB_BRIDGE_URL) {
-  // PRODUCTION: Use the HTTPS bridge (Render → Cloudflare → Home Server)
+if (cfClientId && cfClientSecret) {
+  // PRODUCTION: WebSocket tunnel through Cloudflare Access
   try {
-    pool = createHttpBridge();
-    console.log("✅ HTTPS Database Bridge initialized.");
+    pool = createWebSocketTunnelPool();
+    console.log("✅ WebSocket tunnel pool initialized for production.");
   } catch (err) {
-    console.error("=== BRIDGE_INIT_CRASH ===", err);
+    console.error("=== TUNNEL_POOL_INIT_CRASH ===", err);
   }
 } else if (databaseUrl) {
-  // LOCAL: Use standard mysql2 pool (direct LAN connection)
+  // LOCAL: Standard mysql2 TCP pool
   try {
-    pool = createLocalPool(databaseUrl);
+    pool = createLocalPool();
     console.log("✅ Local database pool created successfully.");
   } catch (err) {
     console.error("=== LOCAL_DB_POOL_CRASH ===", err);
@@ -135,7 +193,7 @@ if (process.env.DB_BRIDGE_URL) {
     }
   }
 } else {
-  console.warn("⚠️ No DATABASE_URL or DB_BRIDGE_URL defined. Database will not be available.");
+  console.warn("⚠️ No DATABASE_URL or CF tokens defined. Database will not be available.");
 }
 
 export const db = globalForDb.db || pool;
