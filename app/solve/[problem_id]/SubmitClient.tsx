@@ -137,6 +137,10 @@ export default function SubmitClient({
 
   const sampleCases = testCases.filter((tc) => tc.is_sample);
   const currentTrans = translations.find((t) => t.language_code === displayLang) ?? translations[0];
+  const desc = currentTrans?.description || "";
+  const difficultyMatch = desc.match(/\[Difficulty:\s*(Easy|Medium|Hard)\]/i);
+  const difficulty = difficultyMatch ? difficultyMatch[1] : null;
+  const cleanDescription = desc.replace(/\[Difficulty:\s*(Easy|Medium|Hard)\]\n*/i, "");
 
   // QOL: Persistence & Shortcuts
   useEffect(() => {
@@ -411,6 +415,8 @@ export default function SubmitClient({
               const pollData = await pollResponse.json();
               const subs = pollData.submissions || (Array.isArray(pollData) ? pollData : []);
 
+              let hasBatchFailure = false;
+
               // Update real-time results keeping index ordering intact
               if (isMounted.current) {
                 subs.forEach((data: any, localIdx: number) => {
@@ -440,6 +446,10 @@ export default function SubmitClient({
                     expected: tc.is_sample || isTeacher || allowViewTestcases ? tc.expected_output : "[HIDDEN]",
                     time_ms: time
                   };
+
+                  if (status !== "Pending" && status !== "AC") {
+                    hasBatchFailure = true;
+                  }
                 });
 
                 // Display current results
@@ -460,7 +470,7 @@ export default function SubmitClient({
                 return statusId >= 3;
               });
 
-              if (allFinished) {
+              if (hasBatchFailure || allFinished) {
                 resolveChunk();
               } else {
                 const timerId = setTimeout(pollStatus, pollDelay);
@@ -479,6 +489,22 @@ export default function SubmitClient({
           const timerId = setTimeout(pollStatus, pollDelay);
           activeTimeoutIdsRef.current.push(timerId);
         });
+
+        // Fail-fast logic: If any test case in the current batch failed, stop evaluating subsequent batches immediately
+        let hasFailure = false;
+        for (let i = 0; i < chunk.length; i++) {
+          const globalIdx = chunkStart + i;
+          const status = runResults[globalIdx]?.status;
+          if (status && status !== "AC" && status !== "Pending") {
+            hasFailure = true;
+            break;
+          }
+        }
+
+        if (hasFailure) {
+          console.log("Evaluation halted: A non-AC verdict was encountered. Skipping remaining test cases.");
+          break;
+        }
       }
 
       if (!isMounted.current) return;
@@ -641,6 +667,14 @@ export default function SubmitClient({
             <span className="text-[9px] font-bold px-2.5 py-1 bg-indigo-500/10 text-indigo-400 rounded-lg border border-indigo-500/20 uppercase tracking-widest">
               Submit Only
             </span>
+            {difficulty && (
+              <span className={`text-[9px] font-bold px-2.5 py-1 rounded-lg border uppercase tracking-widest
+                ${difficulty.toLowerCase() === 'easy' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                  difficulty.toLowerCase() === 'medium' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                  'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+                {difficulty}
+              </span>
+            )}
             <span className="text-[9px] text-zinc-600 font-mono">{timeLimitMs}ms · {Math.round(memoryLimitKb / 1024)}MB</span>
           </div>
           <h1 className="text-base font-bold text-white leading-snug">{currentTrans?.title ?? "Untitled Problem"}</h1>
@@ -664,7 +698,7 @@ export default function SubmitClient({
 
         {/* Description */}
         <div className="flex-1 overflow-y-auto p-6 text-sm text-zinc-300 leading-relaxed scrollbar-hide">
-          <div className="whitespace-pre-wrap font-sans">{currentTrans?.description}</div>
+          <div className="whitespace-pre-wrap font-sans">{cleanDescription}</div>
 
           {/* Teacher Activity Panel (only for classroom groups) */}
           {(isTeacher || allowViewOthers) && allSubmissions && allSubmissions.length > 0 && (
@@ -828,7 +862,7 @@ export default function SubmitClient({
                     {allowViewTestcases ? "Test Case Inputs" : "Example Cases"}
                   </div>
                   <div className="text-[9px] font-mono text-zinc-600">
-                    {testCases.length} Cases Provided
+                    {testCases.filter(tc => allowViewTestcases || tc.is_sample).length} Cases Provided
                   </div>
                 </div>
               </div>

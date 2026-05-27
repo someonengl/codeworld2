@@ -82,7 +82,7 @@ export default function ArchivePage() {
           .from('submissions')
           .select('problem_id')
           .eq('student_id', user.id)
-          .in('status', ['AC', 'Accepted']);
+          .eq('status', 'Accepted');
 
         if (subs) {
           setSolvedIds(new Set(subs.map(s => s.problem_id)));
