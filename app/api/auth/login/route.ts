@@ -5,13 +5,15 @@ import { encryptSession } from '@/utils/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const body = await request.json();
+    const emailInput = body.email || body.username;
+    const password = body.password;
     
-    if (!email || !password) {
+    if (!emailInput || !password) {
       return NextResponse.json({ error: 'Username/Email and Password are required.' }, { status: 400 });
     }
 
-    const input = email.trim().toLowerCase();
+    const input = emailInput.trim().toLowerCase();
 
     // Query database for the user by email or by username
     let sql = 'SELECT * FROM profiles WHERE email = ?';
@@ -19,7 +21,14 @@ export async function POST(request: NextRequest) {
       sql = 'SELECT * FROM profiles WHERE username = ?';
     }
 
-    const [rows]: any = await db.query(sql, [input]);
+    let rows: any;
+    try {
+      const [dbResult] = await db.query(sql, [input]);
+      rows = dbResult;
+    } catch (dbErr: any) {
+      console.error("DETAILED_LOGIN_ERROR DB_QUERY_FAILURE:", dbErr);
+      return NextResponse.json({ error: 'Database connection or query failure.' }, { status: 500 });
+    }
 
     if (!rows || rows.length === 0) {
       return NextResponse.json({ error: 'Invalid username/email or password.' }, { status: 400 });
@@ -28,7 +37,14 @@ export async function POST(request: NextRequest) {
     const user = rows[0];
 
     // Verify PBKDF2 password hash
-    const isPasswordCorrect = verifyPassword(password, user.password_hash);
+    let isPasswordCorrect = false;
+    try {
+      isPasswordCorrect = verifyPassword(password, user.password_hash);
+    } catch (hashErr: any) {
+      console.error("DETAILED_LOGIN_ERROR PASSWORD_HASH_DECRYPTION_FAILURE:", hashErr);
+      return NextResponse.json({ error: 'Password decryption failure.' }, { status: 500 });
+    }
+
     if (!isPasswordCorrect) {
       return NextResponse.json({ error: 'Invalid username/email or password.' }, { status: 400 });
     }
@@ -60,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (err: any) {
-    console.error('❌ Local login error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("DETAILED_LOGIN_ERROR:", err);
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
   }
 }
