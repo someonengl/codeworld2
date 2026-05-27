@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (err: any) {
+    console.error("=== RENDER_DB_CRASH_LOG ===", err);
     console.error("DETAILED_LOGIN_ERROR:", err);
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
   }
