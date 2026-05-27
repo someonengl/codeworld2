@@ -1,5 +1,5 @@
 "use server";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { createClient as createServerClient } from "@/utils/supabase/server";
 
@@ -9,7 +9,7 @@ export async function joinGroup(joinCode: string) {
   const { data: { user } } = await supabaseAuth.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const supabaseAdmin = createAdminClient();
   
   const { data: group } = await supabaseAdmin.from('groups').select('id').eq('join_code', joinCode).single();
   if (!group) throw new Error("Invalid Join Code");
@@ -34,11 +34,11 @@ export async function joinGroup(joinCode: string) {
     return { groupId: group.id, status: 'pending', message: "Request already pending." };
   }
 
-  const { error } = await supabaseAdmin.from('memberships').upsert({ 
+  const { error } = await supabaseAdmin.from('memberships').insert({ 
     group_id: group.id, 
     student_id: user.id,
     status: 'pending' 
-  }, { onConflict: 'group_id,student_id' });
+  });
   
   if (error) throw new Error(error.message);
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/utils/supabase/server";
 import { mapStatusToDbEnum, submitToJudge0, getJudge0LanguageId } from "@/utils/judge0";
 
 // Simple in-memory rate limiter (Consider upgrading to Redis for production)
@@ -79,10 +79,7 @@ export async function POST(req: Request) {
       ];
     } else {
       // 2. Fetch all test cases securely from Supabase (Bypass RLS to get hidden test cases)
-      const supabaseAdmin = createAdminClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
+      const supabaseAdmin = createAdminClient();
 
       const { data: dbCases, error: tcError } = await supabaseAdmin
         .from("test_cases")
@@ -173,10 +170,7 @@ export async function POST(req: Request) {
     let submissionId = "mock-submission-id";
 
     if (!isMock) {
-      const supabaseAdmin = createAdminClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
+      const supabaseAdmin = createAdminClient();
 
       const { data: sub, error: insertErr } = await supabaseAdmin
         .from("submissions")

@@ -45,7 +45,7 @@ export default async function DashboardPage() {
       .eq('memberships.status', 'pending');
     
     if (data) {
-      teacherGroups = data.map(g => ({
+      teacherGroups = data.map((g: any) => ({
         ...g,
         pendingCount: g.memberships?.[0]?.count || 0
       }));

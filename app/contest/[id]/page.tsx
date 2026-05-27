@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Trophy, Clock, ArrowRight, BookOpen, AlertCircle, ChevronRight } from "lucide-react";
@@ -14,10 +14,7 @@ export default async function ContestArenaPage({ params }: { params: Promise<{ i
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const supabaseAdmin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseAdmin = createAdminClient();
 
   // Fetch Contest Metadata
   const { data: contest } = await supabaseAdmin
@@ -116,7 +113,7 @@ export default async function ContestArenaPage({ params }: { params: Promise<{ i
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">
-                {contestProblems && contestProblems.length > 0 ? contestProblems.map((cp, idx) => {
+                {contestProblems && contestProblems.length > 0 ? contestProblems.map((cp: any, idx: number) => {
                   const prob = cp.problems;
                   const trans = prob.problem_translations?.[0];
                   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";

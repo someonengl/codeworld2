@@ -1,5 +1,5 @@
 "use server";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { createClient as createServerClient } from "@/utils/supabase/server";
 
@@ -15,10 +15,7 @@ export async function createMaterial(
   const { data: { user } } = await supabaseAuth.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseAdmin = createAdminClient();
 
   // Verify ownership
   const { data: group } = await supabaseAdmin

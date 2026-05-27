@@ -37,7 +37,7 @@ export default function ChatSidebar({
       .select("username, full_name")
       .eq("id", userId)
       .single()
-      .then(({ data }) => setMyProfile(data));
+      .then(({ data }: any) => setMyProfile(data));
   }, [userId]);
 
   // Auto-scroll to bottom on new messages
@@ -61,7 +61,7 @@ export default function ChatSidebar({
           table: "messages",
           filter: `group_id=eq.${groupId}`,
         },
-        async (payload) => {
+        async (payload: any) => {
           const newMsg = payload.new as Message;
 
           // Skip messages sent by ME — we added them optimistically already

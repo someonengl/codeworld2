@@ -82,13 +82,6 @@ export default function RegisterPage() {
     router.push("/dashboard");
   };
 
-  const handleOAuth = async (provider: "google" | "github") => {
-    await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/auth/setup-username` },
-    });
-  };
-
   // Username UI helpers
   const UsernameIndicator = () => {
     if (usernameState === "checking")  return <Loader2 className="w-4 h-4 animate-spin text-zinc-500" />;
@@ -263,29 +256,6 @@ export default function RegisterPage() {
             )}
           </motion.button>
         </form>
-
-        {/* Divider */}
-        <div className="flex items-center gap-4 w-full opacity-30 my-1">
-          <div className="flex-1 h-px bg-zinc-700" />
-          <span className="text-[10px] text-zinc-500 font-mono tracking-widest">OR</span>
-          <div className="flex-1 h-px bg-zinc-700" />
-        </div>
-
-        {/* OAuth Buttons */}
-        <div className="space-y-3">
-          <p className="text-[10px] text-zinc-500 font-mono text-center leading-normal">Pick a handle after signing in with providers</p>
-          <div className="w-full">
-            <motion.button
-              whileHover={{ scale: 1.015 }}
-              whileTap={{ scale: 0.985 }}
-              type="button"
-              onClick={() => handleOAuth("google")}
-              className="w-full flex items-center justify-center gap-2.5 bg-white/[0.02] hover:bg-white/[0.04] border border-white/[0.06] hover:border-white/[0.12] text-zinc-200 font-medium px-4 py-3 rounded-xl transition-all duration-200 text-xs uppercase tracking-wider cursor-pointer"
-            >
-              Sign up with Google
-            </motion.button>
-          </div>
-        </div>
 
         {/* Footer Login Info */}
         <p className="text-center text-xs text-zinc-500 font-normal mt-2">

@@ -32,7 +32,7 @@ export default function Navbar({ initialUser, initialProfile }: Props) {
         setUser(data?.user);
         setIsLoaded(true);
         if (data?.user) {
-          supabase.from('profiles').select('is_super_admin, username').eq('id', data.user.id).single().then(p => {
+          supabase.from('profiles').select('is_super_admin, username').eq('id', data.user.id).single().then((p: any) => {
             // Hardcoded check for project owner email
             const isOwner = data.user?.email === 'onlinecasur67@gmail.com';
             setIsAdmin(!!p.data?.is_super_admin || isOwner);
@@ -42,7 +42,7 @@ export default function Navbar({ initialUser, initialProfile }: Props) {
       });
     }
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event: any, session: any) => {
       if (session?.user) {
         setUser(session.user);
         setIsLoaded(true);
@@ -130,7 +130,7 @@ export default function Navbar({ initialUser, initialProfile }: Props) {
           ) : (
             <>
               <div className="text-xs text-zinc-500 font-medium hidden lg:block">
-                {user.email}
+                {username ? `@${username}` : user.email}
               </div>
 
               <Link
@@ -190,7 +190,9 @@ export default function Navbar({ initialUser, initialProfile }: Props) {
         <div className="md:hidden fixed inset-0 z-40 bg-background/95 backdrop-blur-xl flex flex-col p-6 pt-24 gap-6 animate-fade-in">
           {user && (
             <div className="flex flex-col gap-4 border-b border-zinc-800/50 pb-6">
-              <div className="text-xs text-zinc-500 font-mono">{user.email}</div>
+              <div className="text-xs text-zinc-500 font-mono">
+                {username ? `@${username}` : user.email}
+              </div>
               <Link
                 href={username ? `/profile/${username}` : "/auth/setup-username"}
                 onClick={() => setIsMobileMenuOpen(false)}

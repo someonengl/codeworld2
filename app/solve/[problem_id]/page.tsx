@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import SubmitClient from "./SubmitClient";
@@ -12,10 +12,7 @@ export default async function SolvePage({ params }: { params: Promise<{ problem_
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const supabaseAdmin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseAdmin = createAdminClient();
 
   const { data: problem } = await supabaseAdmin
     .from("problems")

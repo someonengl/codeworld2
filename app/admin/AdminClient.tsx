@@ -142,8 +142,8 @@ export default function AdminClient({ userId }: { userId: string }) {
           // Identify if 'status' column exists for filtering
           const hasStatus = p.length > 0 && p[0].hasOwnProperty('status');
           if (hasStatus) {
-            setProblems(p.filter(x => x.status === 'Approved'));
-            setPendingArchive(p.filter(x => x.status === 'Pending'));
+            setProblems(p.filter((x: any) => x.status === 'Approved'));
+            setPendingArchive(p.filter((x: any) => x.status === 'Pending'));
           } else {
             setProblems(p);
             setPendingArchive([]);

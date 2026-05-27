@@ -12,15 +12,6 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleOAuth = async (provider: 'google' | 'github') => {
-    await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`
-      }
-    });
-  };
-
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -28,11 +19,8 @@ export default function LoginPage() {
     
     // Slight artificial delay for UX feel of 'processing logic'
     setTimeout(async () => {
-      // If it doesn't look like an email, assume it's a username and append shadow domain
-      const finalEmail = email.includes("@") ? email : `${email.toLowerCase()}@codeworld.local`;
-      
       const { error } = await supabase.auth.signInWithPassword({ 
-        email: finalEmail, 
+        email, 
         password 
       });
       
@@ -98,22 +86,6 @@ export default function LoginPage() {
             {!isLoading && <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
           </button>
         </form>
-
-        <div className="flex items-center gap-4 w-full my-4 opacity-50">
-          <div className="flex-1 h-px bg-zinc-700"></div>
-          <span className="text-xs text-zinc-400 font-mono">SOCIAL PROVIDERS</span>
-          <div className="flex-1 h-px bg-zinc-700"></div>
-        </div>
-
-        <div className="w-full">
-          <button 
-            type="button"
-            onClick={() => handleOAuth('google')}
-            className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-zinc-800 text-white font-semibold px-4 py-2.5 rounded-lg transition-colors text-sm hover:border-zinc-600"
-          >
-            Sign in with Google
-          </button>
-        </div>
 
         <p className="text-center mt-4 text-xs text-zinc-500">
           New to the platform? <Link href="/register" className="text-[#00ff00] hover:underline underline-offset-4 cursor-pointer">Register here.</Link>

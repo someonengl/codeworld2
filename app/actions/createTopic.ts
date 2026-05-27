@@ -1,5 +1,5 @@
 "use server";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { createClient as createServerClient } from "@/utils/supabase/server";
 
@@ -29,10 +29,7 @@ export async function createTopic(
   const { data: { user } } = await supabaseAuth.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseAdmin = createAdminClient();
 
   // Verify teacher role
   const { data: profile } = await supabaseAdmin
@@ -112,10 +109,7 @@ export async function updateTopic(
   const { data: { user } } = await supabaseAuth.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseAdmin = createAdminClient();
 
   // Verify ownership
   const { data: topic } = await supabaseAdmin

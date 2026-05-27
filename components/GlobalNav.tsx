@@ -14,13 +14,13 @@ export default function GlobalNav() {
     supabase.auth.getUser().then(({ data }) => {
       setUser(data?.user);
       if (data?.user) {
-        supabase.from('profiles').select('is_super_admin').eq('id', data.user.id).single().then(p => {
+        supabase.from('profiles').select('is_super_admin').eq('id', data.user.id).single().then((p: any) => {
           if (p.data?.is_super_admin) setIsAdmin(true);
         });
       }
     });
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event: any, session: any) => {
       setUser(session?.user || null);
     });
 

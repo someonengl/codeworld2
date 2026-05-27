@@ -85,7 +85,7 @@ export default function ArchivePage() {
           .eq('status', 'Accepted');
 
         if (subs) {
-          setSolvedIds(new Set(subs.map(s => s.problem_id)));
+          setSolvedIds(new Set(subs.map((s: any) => s.problem_id)));
         }
       }
 

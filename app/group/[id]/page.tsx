@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import ChatSidebar from "./ChatSidebar";
@@ -32,7 +32,7 @@ export default async function GroupHubPage({ params }: { params: Promise<{ id: s
 
   let groupRef = group;
   if (!groupRef) {
-    const supabaseAdmin = createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+    const supabaseAdmin = createAdminClient();
     const { data: adminGroup } = await supabaseAdmin.from('groups').select('*').eq('id', id).single();
     
     if (adminGroup) {
@@ -86,7 +86,7 @@ export default async function GroupHubPage({ params }: { params: Promise<{ id: s
   const groupName = groupRef.name || "Advanced C++ Algorithms";
   
   // Fetch specific problems generated for this group using service role to bypass RLS missing policies
-  const supabaseAdmin = createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const supabaseAdmin = createAdminClient();
   
   const { data: problems } = await supabaseAdmin
     .from('problems')
@@ -98,7 +98,7 @@ export default async function GroupHubPage({ params }: { params: Promise<{ id: s
     .eq('group_id', id);
 
   // SECURE DATA PARTITIONING: Strip non-sample test cases from students
-  const problemsData = problems?.map(p => ({
+  const problemsData = problems?.map((p: any) => ({
     ...p,
     test_cases: isTeacher ? p.test_cases : p.test_cases?.filter((tc: any) => tc.is_sample) || []
   }));
@@ -132,8 +132,8 @@ export default async function GroupHubPage({ params }: { params: Promise<{ id: s
   const solvedSet = new Set<string>();
   if (allSubmissions) {
     allSubmissions
-      .filter(s => s.student_id === user.id)
-      .forEach(s => solvedSet.add(s.problem_id));
+      .filter((s: any) => s.student_id === user.id)
+      .forEach((s: any) => solvedSet.add(s.problem_id));
   }
 
   // Aggregate per student
@@ -160,8 +160,8 @@ export default async function GroupHubPage({ params }: { params: Promise<{ id: s
       .in('id', studentIds);
     
     leaderboard = studentIds
-      .map(sid => {
-        const profile = studentProfiles?.find(p => p.id === sid);
+      .map((sid: string) => {
+        const profile = studentProfiles?.find((p: any) => p.id === sid);
         const solved = studentMap.get(sid) || 0;
         return {
           id: sid,
@@ -222,7 +222,7 @@ export default async function GroupHubPage({ params }: { params: Promise<{ id: s
             {isTeacher && <TeacherHubControls groupId={id} />}
 
             <div className="space-y-3">
-               {problemsData && problemsData.length > 0 ? problemsData.map((prob) => {
+               {problemsData && problemsData.length > 0 ? problemsData.map((prob: any) => {
                  const translation = prob.problem_translations[0];
                  const title = translation?.title || `Problem ${prob.id.split('-')[0]}`;
                  return (
