@@ -3,26 +3,22 @@ services:
     name: codeworld
     runtime: node
     plan: free
-    buildCommand: |
-      npm install &&
-      npm run build &&
-      curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared &&
-      chmod +x cloudflared
-    startCommand: PATH=$PATH:$(pwd) bash start.sh
+    buildCommand: npm install && npm run build
+    startCommand: bash start.sh
     envVars:
       - key: NODE_VERSION
         value: 22.0.0
       - key: NODE_ENV
         value: production
-      - key: DATABASE_URL
+      - key: DB_BRIDGE_URL
         sync: false
-      - key: SESSION_SECRET
-        sync: false
-      - key: NEXT_PUBLIC_JUDGE0_API_URL
+      - key: BRIDGE_SECRET
         sync: false
       - key: CF_CLIENT_ID
         sync: false
       - key: CF_CLIENT_SECRET
         sync: false
-      - key: CF_TUNNEL_HOSTNAME
+      - key: SESSION_SECRET
+        sync: false
+      - key: NEXT_PUBLIC_JUDGE0_API_URL
         sync: false
