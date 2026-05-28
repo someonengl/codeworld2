@@ -4,8 +4,6 @@ import { WebSocket, createWebSocketStream } from 'ws';
 const globalForDb = global as unknown as { db: any };
 
 const databaseUrl = process.env.DATABASE_URL;
-const cfClientId = process.env.CF_ACCESS_CLIENT_ID;
-const cfClientSecret = process.env.CF_ACCESS_CLIENT_SECRET;
 const tunnelHostname = process.env.CF_TUNNEL_HOSTNAME || 'db.nobasstorage.online';
 
 // ============ RENDER DEBUG BOOT LOG ============
@@ -13,8 +11,10 @@ console.log("=== RENDER_DB_BOOT_LOG ===");
 console.log("  NODE_ENV:", process.env.NODE_ENV);
 console.log("  DATABASE_URL defined:", !!databaseUrl);
 console.log("  DATABASE_URL value:", databaseUrl ? databaseUrl.replace(/:[^:@]+@/, ':***@') : 'MISSING');
-console.log("  CF_ACCESS_CLIENT_ID defined:", !!cfClientId);
-console.log("  CF_ACCESS_CLIENT_SECRET defined:", !!cfClientSecret);
+console.log("  CF_ACCESS_CLIENT_ID defined:", !!process.env.CF_ACCESS_CLIENT_ID);
+console.log("  CF_ACCESS_CLIENT_SECRET defined:", !!process.env.CF_ACCESS_CLIENT_SECRET);
+console.log("  CF_CLIENT_ID defined:", !!process.env.CF_CLIENT_ID);
+console.log("  CF_CLIENT_SECRET defined:", !!process.env.CF_CLIENT_SECRET);
 console.log("  CF_TUNNEL_HOSTNAME:", tunnelHostname);
 console.log("===========================");
 
@@ -60,8 +60,8 @@ function createWebSocketTunnelPool() {
 
       const ws = new WebSocket('wss://db.nobasstorage.online:443', {
         headers: {
-          'CF-Access-Client-Id': process.env.CF_ACCESS_CLIENT_ID!,
-          'CF-Access-Client-Secret': process.env.CF_ACCESS_CLIENT_SECRET!,
+          'CF-Access-Client-Id': process.env.CF_ACCESS_CLIENT_ID || process.env.CF_CLIENT_ID || '',
+          'CF-Access-Client-Secret': process.env.CF_ACCESS_CLIENT_SECRET || process.env.CF_CLIENT_SECRET || '',
         },
         // Ensure binary framing for MySQL protocol bytes
         perMessageDeflate: false,
@@ -164,38 +164,70 @@ function createLocalPool(): mysql.Pool {
 }
 
 // ---------------------------------------------------------------------------
-// INITIALIZATION: Choose the right driver based on environment
+// LAZY INITIALIZATION: Dynamically choose the driver based on active environment variables at query time
 // ---------------------------------------------------------------------------
 let pool: any = null;
 
-if (cfClientId && cfClientSecret) {
-  // PRODUCTION: WebSocket tunnel through Cloudflare Access
-  try {
-    pool = createWebSocketTunnelPool();
-    console.log("✅ WebSocket tunnel pool initialized for production.");
-  } catch (err) {
-    console.error("=== TUNNEL_POOL_INIT_CRASH ===", err);
-  }
-} else {
-  // LOCAL: Standard mysql2 TCP pool
-  try {
-    pool = createLocalPool();
-    console.log("✅ Local database pool created successfully.");
-  } catch (err) {
-    console.error("=== LOCAL_DB_POOL_CRASH ===", err);
-    if (databaseUrl) {
-      try {
-        pool = mysql.createPool(databaseUrl);
-        console.log("✅ Fallback pool created from raw DATABASE_URL.");
-      } catch (fallbackErr) {
-        console.error("=== LOCAL_DB_FALLBACK_CRASH ===", fallbackErr);
+function getPool() {
+  if (globalForDb.db) return globalForDb.db;
+  if (pool) return pool;
+
+  const activeClientId = process.env.CF_ACCESS_CLIENT_ID || process.env.CF_CLIENT_ID;
+  const activeClientSecret = process.env.CF_ACCESS_CLIENT_SECRET || process.env.CF_CLIENT_SECRET;
+
+  if (activeClientId && activeClientSecret) {
+    // PRODUCTION: WebSocket tunnel through Cloudflare Access
+    try {
+      pool = createWebSocketTunnelPool();
+      console.log("✅ WebSocket tunnel pool lazily initialized for production.");
+    } catch (err) {
+      console.error("=== LAZY_TUNNEL_POOL_INIT_CRASH ===", err);
+    }
+  } else {
+    // LOCAL fallback: Standard mysql2 TCP pool
+    try {
+      pool = createLocalPool();
+      console.log("✅ Local database pool lazily created successfully.");
+    } catch (err) {
+      console.error("=== LAZY_LOCAL_DB_POOL_CRASH ===", err);
+      if (databaseUrl) {
+        try {
+          pool = mysql.createPool(databaseUrl);
+          console.log("✅ Lazy: Fallback pool created from raw DATABASE_URL.");
+        } catch (fallbackErr) {
+          console.error("=== LAZY_LOCAL_DB_FALLBACK_CRASH ===", fallbackErr);
+        }
+      } else {
+        console.warn("⚠️ No DATABASE_URL or CF tokens defined. Database will not be available.");
       }
-    } else {
-      console.warn("⚠️ No DATABASE_URL or CF tokens defined. Database will not be available.");
     }
   }
+
+  if (process.env.NODE_ENV !== 'production' && pool) {
+    globalForDb.db = pool;
+  }
+  return pool;
 }
 
-export const db = globalForDb.db || pool;
-
-if (process.env.NODE_ENV !== 'production' && db) globalForDb.db = db;
+export const db = {
+  async query(sql: string, values?: any[]) {
+    const activePool = getPool();
+    if (!activePool) throw new Error("Database pool is not initialized.");
+    return activePool.query(sql, values);
+  },
+  async getConnection() {
+    const activePool = getPool();
+    if (!activePool) throw new Error("Database pool is not initialized.");
+    return activePool.getConnection();
+  },
+  async end() {
+    if (pool) {
+      await pool.end();
+      pool = null;
+    }
+    if (globalForDb.db) {
+      await globalForDb.db.end();
+      globalForDb.db = null;
+    }
+  }
+};
