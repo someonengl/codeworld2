@@ -4,8 +4,8 @@ import { WebSocket, createWebSocketStream } from 'ws';
 const globalForDb = global as unknown as { db: any };
 
 const databaseUrl = process.env.DATABASE_URL;
-const cfClientId = process.env.CF_ACCESS_CLIENT_ID;
-const cfClientSecret = process.env.CF_ACCESS_CLIENT_SECRET;
+const cfClientId = process.env.CF_ACCESS_CLIENT_ID || process.env.CF_CLIENT_ID;
+const cfClientSecret = process.env.CF_ACCESS_CLIENT_SECRET || process.env.CF_CLIENT_SECRET;
 const tunnelHostname = process.env.CF_TUNNEL_HOSTNAME || 'nobasstorage.online';
 
 // ============ RENDER DEBUG BOOT LOG ============
@@ -13,8 +13,8 @@ console.log("=== RENDER_DB_BOOT_LOG ===");
 console.log("  NODE_ENV:", process.env.NODE_ENV);
 console.log("  DATABASE_URL defined:", !!databaseUrl);
 console.log("  DATABASE_URL value:", databaseUrl ? databaseUrl.replace(/:[^:@]+@/, ':***@') : 'MISSING');
-console.log("  CF_ACCESS_CLIENT_ID defined:", !!cfClientId);
-console.log("  CF_ACCESS_CLIENT_SECRET defined:", !!cfClientSecret);
+console.log("  CF_ACCESS_CLIENT_ID/CF_CLIENT_ID defined:", !!cfClientId);
+console.log("  CF_ACCESS_CLIENT_SECRET/CF_CLIENT_SECRET defined:", !!cfClientSecret);
 console.log("  CF_TUNNEL_HOSTNAME:", tunnelHostname);
 console.log("===========================");
 
@@ -48,7 +48,7 @@ if (databaseUrl) {
 // ---------------------------------------------------------------------------
 function createWebSocketTunnelPool() {
   console.log("🔒 Production mode: WebSocket tunnel pool");
-  console.log("   Tunnel target: wss://" + tunnelHostname);
+  console.log("   Tunnel target: wss://db.nobasstorage.online/cdn-cgi/access/cli");
 
   /**
    * Opens a single authenticated WebSocket tunnel to Cloudflare Access,
@@ -56,7 +56,7 @@ function createWebSocketTunnelPool() {
    */
   async function createTunnelConnection(): Promise<mysql.Connection> {
     return new Promise((resolve, reject) => {
-      const wsUrl = `wss://${tunnelHostname}`;
+      const wsUrl = 'wss://db.nobasstorage.online/cdn-cgi/access/cli';
 
       console.log("  🌐 Opening WebSocket tunnel to:", wsUrl);
 
@@ -178,22 +178,24 @@ if (cfClientId && cfClientSecret) {
   } catch (err) {
     console.error("=== TUNNEL_POOL_INIT_CRASH ===", err);
   }
-} else if (databaseUrl) {
+} else {
   // LOCAL: Standard mysql2 TCP pool
   try {
     pool = createLocalPool();
     console.log("✅ Local database pool created successfully.");
   } catch (err) {
     console.error("=== LOCAL_DB_POOL_CRASH ===", err);
-    try {
-      pool = mysql.createPool(databaseUrl);
-      console.log("✅ Fallback pool created from raw DATABASE_URL.");
-    } catch (fallbackErr) {
-      console.error("=== LOCAL_DB_FALLBACK_CRASH ===", fallbackErr);
+    if (databaseUrl) {
+      try {
+        pool = mysql.createPool(databaseUrl);
+        console.log("✅ Fallback pool created from raw DATABASE_URL.");
+      } catch (fallbackErr) {
+        console.error("=== LOCAL_DB_FALLBACK_CRASH ===", fallbackErr);
+      }
+    } else {
+      console.warn("⚠️ No DATABASE_URL or CF tokens defined. Database will not be available.");
     }
   }
-} else {
-  console.warn("⚠️ No DATABASE_URL or CF tokens defined. Database will not be available.");
 }
 
 export const db = globalForDb.db || pool;
