@@ -48,7 +48,7 @@ if (databaseUrl) {
 // ---------------------------------------------------------------------------
 function createWebSocketTunnelPool() {
   console.log("🔒 Production mode: WebSocket tunnel pool");
-  console.log("   Tunnel target: tcp://db.nobasstorage.online/cdn-cgi/access/cli");
+  console.log("   Tunnel target: wss://db.nobasstorage.online/cdn-cgi/access/cli");
 
   /**
    * Opens a single authenticated WebSocket tunnel to Cloudflare Access,
@@ -56,13 +56,11 @@ function createWebSocketTunnelPool() {
    */
   async function createTunnelConnection(): Promise<mysql.Connection> {
     return new Promise((resolve, reject) => {
-      const wsUrl = 'tcp://db.nobasstorage.online/cdn-cgi/access/cli';
+      const wsUrl = 'wss://db.nobasstorage.online/cdn-cgi/access/cli';
 
       console.log("  🌐 Opening WebSocket tunnel to:", wsUrl);
 
-      // Convert tcp:// to wss:// for the WebSocket client to avoid protocol errors
-      const activeUrl = wsUrl.replace(/^tcp:\/\//, 'wss://');
-      const ws = new WebSocket(activeUrl, {
+      const ws = new WebSocket(wsUrl, {
         headers: {
           'CF-Access-Client-Id': cfClientId!,
           'CF-Access-Client-Secret': cfClientSecret!,
