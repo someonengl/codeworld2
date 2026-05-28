@@ -4,8 +4,8 @@ import { WebSocket, createWebSocketStream } from 'ws';
 const globalForDb = global as unknown as { db: any };
 
 const databaseUrl = process.env.DATABASE_URL;
-const cfClientId = process.env.CF_ACCESS_CLIENT_ID || process.env.CF_CLIENT_ID;
-const cfClientSecret = process.env.CF_ACCESS_CLIENT_SECRET || process.env.CF_CLIENT_SECRET;
+const cfClientId = process.env.CF_ACCESS_CLIENT_ID;
+const cfClientSecret = process.env.CF_ACCESS_CLIENT_SECRET;
 const tunnelHostname = process.env.CF_TUNNEL_HOSTNAME || 'db.nobasstorage.online';
 
 // ============ RENDER DEBUG BOOT LOG ============
@@ -13,8 +13,8 @@ console.log("=== RENDER_DB_BOOT_LOG ===");
 console.log("  NODE_ENV:", process.env.NODE_ENV);
 console.log("  DATABASE_URL defined:", !!databaseUrl);
 console.log("  DATABASE_URL value:", databaseUrl ? databaseUrl.replace(/:[^:@]+@/, ':***@') : 'MISSING');
-console.log("  CF_ACCESS_CLIENT_ID/CF_CLIENT_ID defined:", !!cfClientId);
-console.log("  CF_ACCESS_CLIENT_SECRET/CF_CLIENT_SECRET defined:", !!cfClientSecret);
+console.log("  CF_ACCESS_CLIENT_ID defined:", !!cfClientId);
+console.log("  CF_ACCESS_CLIENT_SECRET defined:", !!cfClientSecret);
 console.log("  CF_TUNNEL_HOSTNAME:", tunnelHostname);
 console.log("===========================");
 
@@ -48,7 +48,7 @@ if (databaseUrl) {
 // ---------------------------------------------------------------------------
 function createWebSocketTunnelPool() {
   console.log("🔒 Production mode: WebSocket tunnel pool");
-  console.log("   Tunnel target: wss://db.nobasstorage.online/cdn-cgi/access/cli");
+  console.log("   Tunnel target: wss://db.nobasstorage.online:443");
 
   /**
    * Opens a single authenticated WebSocket tunnel to Cloudflare Access,
@@ -56,14 +56,12 @@ function createWebSocketTunnelPool() {
    */
   async function createTunnelConnection(): Promise<mysql.Connection> {
     return new Promise((resolve, reject) => {
-      const wsUrl = 'wss://db.nobasstorage.online/cdn-cgi/access/cli';
+      console.log("  🌐 Opening WebSocket tunnel to: wss://db.nobasstorage.online:443");
 
-      console.log("  🌐 Opening WebSocket tunnel to:", wsUrl);
-
-      const ws = new WebSocket(wsUrl, {
+      const ws = new WebSocket('wss://db.nobasstorage.online:443', {
         headers: {
-          'CF-Access-Client-Id': cfClientId!,
-          'CF-Access-Client-Secret': cfClientSecret!,
+          'CF-Access-Client-Id': process.env.CF_ACCESS_CLIENT_ID!,
+          'CF-Access-Client-Secret': process.env.CF_ACCESS_CLIENT_SECRET!,
         },
         // Ensure binary framing for MySQL protocol bytes
         perMessageDeflate: false,
