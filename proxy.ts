@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { decryptSession } from './utils/auth';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const sessionToken = request.cookies.get('session')?.value;
   const session = decryptSession(sessionToken || '');
 

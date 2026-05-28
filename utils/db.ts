@@ -6,7 +6,7 @@ const globalForDb = global as unknown as { db: any };
 const databaseUrl = process.env.DATABASE_URL;
 const cfClientId = process.env.CF_ACCESS_CLIENT_ID || process.env.CF_CLIENT_ID;
 const cfClientSecret = process.env.CF_ACCESS_CLIENT_SECRET || process.env.CF_CLIENT_SECRET;
-const tunnelHostname = process.env.CF_TUNNEL_HOSTNAME || 'nobasstorage.online';
+const tunnelHostname = process.env.CF_TUNNEL_HOSTNAME || 'db.nobasstorage.online';
 
 // ============ RENDER DEBUG BOOT LOG ============
 console.log("=== RENDER_DB_BOOT_LOG ===");
@@ -48,7 +48,7 @@ if (databaseUrl) {
 // ---------------------------------------------------------------------------
 function createWebSocketTunnelPool() {
   console.log("🔒 Production mode: WebSocket tunnel pool");
-  console.log("   Tunnel target: wss://db.nobasstorage.online/cdn-cgi/access/cli");
+  console.log("   Tunnel target: tcp://db.nobasstorage.online/cdn-cgi/access/cli");
 
   /**
    * Opens a single authenticated WebSocket tunnel to Cloudflare Access,
@@ -56,11 +56,13 @@ function createWebSocketTunnelPool() {
    */
   async function createTunnelConnection(): Promise<mysql.Connection> {
     return new Promise((resolve, reject) => {
-      const wsUrl = 'wss://db.nobasstorage.online/cdn-cgi/access/cli';
+      const wsUrl = 'tcp://db.nobasstorage.online/cdn-cgi/access/cli';
 
       console.log("  🌐 Opening WebSocket tunnel to:", wsUrl);
 
-      const ws = new WebSocket(wsUrl, {
+      // Convert tcp:// to wss:// for the WebSocket client to avoid protocol errors
+      const activeUrl = wsUrl.replace(/^tcp:\/\//, 'wss://');
+      const ws = new WebSocket(activeUrl, {
         headers: {
           'CF-Access-Client-Id': cfClientId!,
           'CF-Access-Client-Secret': cfClientSecret!,
