@@ -24,7 +24,7 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# 1. Install curl to download cloudflared (Alpine uses apk)
+# 1. Install curl to download cloudflared
 RUN apk add --no-cache curl
 
 # 2. Download cloudflared and make it executable globally
@@ -48,8 +48,5 @@ USER nextjs
 
 EXPOSE 3000
 
-# 3. Start cloudflared with your Service Token credentials, pause 2s for handshake, then boot Next.js
-# Start cloudflared with logging enabled, pause 2s for handshake, then boot Next.js
-# Start cloudflared targeting the raw TCP listener protocol, pause 2s, then boot Next.js
-# Start cloudflared using pure TCP protocol mode, pause 2s, then boot Next.js
-CMD /usr/local/bin/cloudflared access tcp --hostname db.nobasstorage.online --listener 127.0.0.1:3306 --header "CF-Access-Client-Id=$CF_CLIENT_ID" --header "CF-Access-Client-Secret=$CF_CLIENT_SECRET" & sleep 2 && npm run start
+# 3. Start cloudflared using the official token flag parameters, pause 2s, then boot Next.js
+CMD /usr/local/bin/cloudflared access tcp --hostname db.nobasstorage.online --listener 127.0.0.1:3306 --id "$CF_CLIENT_ID" --secret "$CF_CLIENT_SECRET" & sleep 2 && npm run start
