@@ -49,4 +49,5 @@ USER nextjs
 EXPOSE 3000
 
 # 3. Start cloudflared with your Service Token credentials, pause 2s for handshake, then boot Next.js
-CMD /usr/local/bin/cloudflared access tcp --hostname db.nobasstorage.online --listener 127.0.0.1:3306 --header "CF-Access-Client-Id=$CF_CLIENT_ID" --header "CF-Access-Client-Secret=$CF_CLIENT_SECRET" >/dev/null 2>&1 & sleep 2 && npm run start
+# Start cloudflared with logging enabled, pause 2s for handshake, then boot Next.js
+CMD /usr/local/bin/cloudflared access tcp --hostname db.nobasstorage.online --listener 127.0.0.1:3306 --header "CF-Access-Client-Id=$CF_CLIENT_ID" --header "CF-Access-Client-Secret=$CF_CLIENT_SECRET" --loglevel debug & sleep 2 && npm run start
