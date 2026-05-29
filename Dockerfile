@@ -41,12 +41,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
-# Give our non-root user ownership permissions over the execution directory if needed
+# Give our non-root user ownership permissions over the execution directory
 RUN chown -R nextjs:nodejs /app
 
 USER nextjs
 
 EXPOSE 3000
 
-# 3. Start cloudflared background tunnel, pause 2s for handshake, then boot Next.js
-CMD /usr/local/bin/cloudflared access tcp --hostname db.nobasstorage.online --listener 127.0.0.1:3306 >/dev/null 2>&1 & sleep 2 && npm run start
+# 3. Start cloudflared with your Service Token credentials, pause 2s for handshake, then boot Next.js
+CMD /usr/local/bin/cloudflared access tcp --hostname db.nobasstorage.online --listener 127.0.0.1:3306 --header "CF-Access-Client-Id=$CF_CLIENT_ID" --header "CF-Access-Client-Secret=$CF_CLIENT_SECRET" >/dev/null 2>&1 & sleep 2 && npm run start
