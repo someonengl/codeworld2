@@ -24,6 +24,13 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+# 1. Install curl to download cloudflared (Alpine uses apk)
+RUN apk add --no-cache curl
+
+# 2. Download cloudflared and make it executable globally
+RUN curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared \
+    && chmod +x /usr/local/bin/cloudflared
+
 # Create a non-root system user for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -34,8 +41,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
+# Give our non-root user ownership permissions over the execution directory if needed
+RUN chown -R nextjs:nodejs /app
+
 USER nextjs
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start"]
+# 3. Start cloudflared background tunnel, pause 2s for handshake, then boot Next.js
+CMD /usr/local/bin/cloudflared access tcp --hostname db.nobasstorage.online --listener 127.0.0.1:3306 >/dev/null 2>&1 & sleep 2 && npm run start
