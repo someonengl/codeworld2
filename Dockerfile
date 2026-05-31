@@ -49,4 +49,5 @@ EXPOSE 3000
 
 # Route cloudflared safely past the IPv6 block using standard Go runtime overrides
 # Force cloudflared to route requests directly over Cloudflare's IPv4 edge network interface
-CMD /usr/local/bin/cloudflared access tcp --hostname db.nobasstorage.online --destination 172.66.43.190:443 --listener 127.0.0.1:3306 --id "$CF_CLIENT_ID" --secret "$CF_CLIENT_SECRET" & sleep 2 && exec npm run start
+# Override standard Linux network priority settings to drop IPv6 before booting services
+CMD echo "precedence ::ffff:0:0/96 100" > /etc/gai.conf && /usr/local/bin/cloudflared access tcp --hostname db.nobasstorage.online --listener 127.0.0.1:3306 --id "$CF_CLIENT_ID" --secret "$CF_CLIENT_SECRET" & sleep 2 && exec npm run start
