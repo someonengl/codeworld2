@@ -47,4 +47,4 @@ EXPOSE 3000
 # Force IPv4 connection routing to match Render's network restrictions
 # Force cloudflared to use IPv4 only and ignore the unreachable IPv6 address
 
-CMD /usr/local/bin/cloudflared access tcp --hostname db.nobasstorage.online --listener 127.0.0.1:3306 --id "$CF_CLIENT_ID" --secret "$CF_CLIENT_SECRET" --edge-ip-version 4 & sleep 2 && exec npm run start
+CMD GODEBUG=netdns=go /usr/local/bin/cloudflared access tcp --hostname db.nobasstorage.online --listener 127.0.0.1:3306 --id "$CF_CLIENT_ID" --secret "$CF_CLIENT_SECRET" & sleep 2 && exec npm run start
