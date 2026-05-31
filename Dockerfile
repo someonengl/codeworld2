@@ -48,4 +48,5 @@ EXPOSE 3000
 # Force cloudflared to use IPv4 only and ignore the unreachable IPv6 address
 
 # Route cloudflared safely past the IPv6 block using standard Go runtime overrides
-CMD GODEBUG=netdns=go /usr/local/bin/cloudflared access tcp --hostname db.nobasstorage.online --listener 127.0.0.1:3306 --id "$CF_CLIENT_ID" --secret "$CF_CLIENT_SECRET" & sleep 2 && exec npm run start
+# Force cloudflared to route requests directly over Cloudflare's IPv4 edge network interface
+CMD /usr/local/bin/cloudflared access tcp --hostname db.nobasstorage.online --destination 172.66.43.190:443 --listener 127.0.0.1:3306 --id "$CF_CLIENT_ID" --secret "$CF_CLIENT_SECRET" & sleep 2 && exec npm run start
