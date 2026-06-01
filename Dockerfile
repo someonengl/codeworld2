@@ -53,3 +53,5 @@ EXPOSE 3000
 # Force the internal Go network resolver to drop IPv6 results and resolve the domain over IPv4
 # Enforce native IPv4 sockets and pass the explicit edge routing flag to clear out the loop
 # Route cloudflared access using standard Go networking overrides to avoid CLI argument crashes
+# Force a clean execution profile, direct logs to standard output, and catch early exit codes
+CMD /usr/local/bin/cloudflared access tcp --hostname db.nobasstorage.online --listener 127.0.0.1:3306 --id "$CF_CLIENT_ID" --secret "$CF_CLIENT_SECRET" & exec npm run start
