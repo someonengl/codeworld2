@@ -52,3 +52,4 @@ EXPOSE 3000
 # Override standard Linux network priority settings to drop IPv6 before booting services
 # Force the internal Go network resolver to drop IPv6 results and resolve the domain over IPv4
 # Enforce native IPv4 sockets and pass the explicit edge routing flag to clear out the loop
+# Route cloudflared access using standard Go networking overrides to avoid CLI argument crashes
