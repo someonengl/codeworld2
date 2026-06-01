@@ -52,4 +52,3 @@ EXPOSE 3000
 # Override standard Linux network priority settings to drop IPv6 before booting services
 # Force the internal Go network resolver to drop IPv6 results and resolve the domain over IPv4
 # Enforce native IPv4 sockets and pass the explicit edge routing flag to clear out the loop
-CMD /usr/local/bin/cloudflared access tcp --hostname db.nobasstorage.online --listener 127.0.0.1:3306 --id "$CF_CLIENT_ID" --secret "$CF_CLIENT_SECRET" --edge-ip-version 4 & sleep 2 && exec npm run start
