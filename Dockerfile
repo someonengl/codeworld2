@@ -55,7 +55,7 @@ EXPOSE 3000
 # Route cloudflared access using standard Go networking overrides to avoid CLI argument crashes
 # Force a clean execution profile, direct logs to standard output, and catch early exit codes
 # Force the system network resolver to drop dual-stack IPv6 entries globally
-ENV GODEBUG=netdns=go
+ENV TUNNEL_EDGE_IP_VERSION=4
 
-# Run the clean background tunnel and execute the Next production build
-CMD /usr/local/bin/cloudflared access tcp --hostname db.nobasstorage.online --listener 127.0.0.1:3306 --id "$CF_CLIENT_ID" --secret "$CF_CLIENT_SECRET" & exec npm run start
+# Run the clean background tunnel forcing IPv4 edge routing and execute the Next production build
+CMD /usr/local/bin/cloudflared --edge-ip-version 4 access tcp --hostname db.nobasstorage.online --listener 127.0.0.1:3306 --id "$CF_CLIENT_ID" --secret "$CF_CLIENT_SECRET" & exec npm run start
