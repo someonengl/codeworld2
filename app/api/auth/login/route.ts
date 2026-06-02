@@ -3,8 +3,26 @@ import { db } from '@/utils/db';
 import { verifyPassword } from '@/utils/password';
 import { encryptSession } from '@/utils/auth';
 
+const loginRateLimit = new Map<string, { count: number; resetTime: number }>();
+
+function isLoginRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const record = loginRateLimit.get(ip);
+  if (!record || now > record.resetTime) {
+    loginRateLimit.set(ip, { count: 1, resetTime: now + 60000 });
+    return false;
+  }
+  record.count += 1;
+  return record.count > 5; // 5 attempts per minute
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    if (isLoginRateLimited(ip)) {
+      return NextResponse.json({ error: 'Too many login attempts. Please try again in a minute.' }, { status: 429 });
+    }
+
     const body = await request.json();
     const emailInput = body.email || body.username;
     const password = body.password;

@@ -4,8 +4,26 @@ import { hashPassword } from '@/utils/password';
 import { encryptSession } from '@/utils/auth';
 import crypto from 'crypto';
 
+const signupRateLimit = new Map<string, { count: number; resetTime: number }>();
+
+function isSignupRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const record = signupRateLimit.get(ip);
+  if (!record || now > record.resetTime) {
+    signupRateLimit.set(ip, { count: 1, resetTime: now + 60000 });
+    return false;
+  }
+  record.count += 1;
+  return record.count > 5; // 5 registrations per minute
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    if (isSignupRateLimited(ip)) {
+      return NextResponse.json({ error: 'Too many registration requests. Please try again in a minute.' }, { status: 429 });
+    }
+
     const { email, password, username, full_name } = await request.json();
     
     if (!email || !password || !username) {

@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# $1 is the absolute path of the file that was just changed
+FILE_PATH="$1"
+
+# Extract just the clean filename from the full path
+FILENAME=$(basename "$FILE_PATH")
+
+# Get current date and time format
+DATETIME=$(date "+%Y-%m-%d %H:%M:%S")
+
+# Check if the changed file actually exists (prevents ghost triggers)
+if [ -f "$FILE_PATH" ]; then
+    echo "⚡ File changed: $FILENAME. Running auto-push..."
+    
+    # Your exact loop sequence
+    git add "$FILE_PATH"
+    git commit -m "edited $FILENAME at $DATETIME"
+    git push
+    
+    echo "✅ Successfully pushed to GitHub!"
+    echo "----------------------------------------"
+fi
+
+

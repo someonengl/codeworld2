@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { createAdminClient } from "@/utils/supabase/server";
 import { mapStatusToDbEnum, submitToJudge0, getJudge0LanguageId } from "@/utils/judge0";
+import { decryptSession } from "@/utils/auth";
 
 // Simple in-memory rate limiter (Consider upgrading to Redis for production)
 const rateLimit = new Map<string, { count: number; resetTime: number }>();
@@ -24,7 +25,7 @@ const LANGUAGES = [
   "cpp", "c", "python", "java", "js", "go", "rust", "kotlin"
 ];
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     // 1. DDOS Protection: Body Size Limit Check
     const contentLength = req.headers.get("content-length");
@@ -43,6 +44,13 @@ export async function POST(req: Request) {
 
     if (!source_code || !language || !problem_id || !user_id) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Enforce session user verification
+    const sessionCookie = req.cookies.get('session')?.value;
+    const session = decryptSession(sessionCookie || '');
+    if (!session || session.id !== user_id) {
+      return NextResponse.json({ error: "Unauthorized submission request." }, { status: 401 });
     }
 
     // 1. INPUT WHITELISTING AND TYPE ENFORCEMENT

@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import Navbar from "./components/Navbar";
 import ClientProviders from "./components/ClientProviders";
+import CookieBanner from "@/components/CookieBanner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -42,6 +43,7 @@ export default async function RootLayout({
           <main className="flex-1 flex flex-col w-full h-full">
             {children}
           </main>
+          <CookieBanner />
         </ClientProviders>
       </body>
     </html>

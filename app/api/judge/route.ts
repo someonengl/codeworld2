@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { submitToJudge0, getJudge0LanguageId } from "@/utils/judge0";
+import { decryptSession } from "@/utils/auth";
 
 // Simple in-memory rate limiter
 const rateLimit = new Map<string, { count: number; resetTime: number }>();
@@ -21,7 +22,7 @@ function isRateLimited(key: string): boolean {
 
 // Removed Wandbox support to route exclusively to self-hosted Judge0
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const { source_code, language, test_case, time_limit_ms, user_id, stdin } = await req.json();
     const headerList = await headers();
@@ -30,6 +31,13 @@ export async function POST(req: Request) {
 
     if (isRateLimited(limitKey)) {
       return NextResponse.json({ error: "Rate limit exceeded (15 submissions/min). Slow down!" }, { status: 429 });
+    }
+
+    // Verify session
+    const sessionCookie = req.cookies.get('session')?.value;
+    const session = decryptSession(sessionCookie || '');
+    if (!session || (user_id && user_id !== "mock-user" && session.id !== user_id)) {
+      return NextResponse.json({ error: "Unauthorized code execution." }, { status: 401 });
     }
 
     if (!source_code || !language) {

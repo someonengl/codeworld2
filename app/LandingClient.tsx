@@ -234,9 +234,18 @@ export default function LandingClient({ user }: Props) {
         {/* ─── Footer ──────────────────────────────────────────── */}
         <footer className="w-full border-t border-white/[0.04] mt-12 py-12 px-6">
           <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-2 font-bold text-lg text-zinc-500 hover:text-brand-cyan transition-colors">
-              <Terminal className="w-5 h-5 text-brand-cyan" />
-              CodeWorld
+            <div className="flex flex-col gap-2 items-center md:items-start text-center md:text-left">
+              <div className="flex items-center gap-2 font-bold text-lg text-zinc-500 hover:text-brand-cyan transition-colors">
+                <Terminal className="w-5 h-5 text-brand-cyan" />
+                CodeWorld
+              </div>
+              <div className="text-[10px] text-zinc-600 font-mono">
+                We use cookies to maintain your authenticated session. By continuing, you agree to our policies.
+              </div>
+            </div>
+            <div className="flex items-center gap-6 text-sm font-medium text-zinc-500">
+              <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+              <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
             </div>
             <div className="text-xs text-zinc-700 font-mono tracking-widest uppercase">
               © {new Date().getFullYear()} CodeWorld. All rights reserved.

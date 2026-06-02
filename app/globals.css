@@ -139,16 +139,6 @@
   --primary: #00f5ff;
 }
 
-/* Hide default cursor only on devices with a fine pointer (mouse) — replaced by CustomCursor */
-@media (pointer: fine) {
-
-  *,
-  *::before,
-  *::after {
-    cursor: none !important;
-  }
-}
-
 body {
   color: var(--foreground);
   background: var(--background);
