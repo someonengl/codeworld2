@@ -16,9 +16,9 @@ export default function ProfileEditClient({ currentUsername, email, role }: Prop
     <>
       <button 
         onClick={() => setIsOpen(true)}
-        className="p-2 bg-white/[0.05] border border-white/10 hover:bg-white/10 rounded-full transition-all flex items-center justify-center group"
+        className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 rounded-full transition-all flex items-center justify-center group cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.1)] hover:shadow-[0_0_20px_rgba(16,185,129,0.2)]"
       >
-        <Edit2 className="w-4 h-4 text-zinc-400 group-hover:text-white" />
+        <Edit2 className="w-4 h-4" />
       </button>
       
       <ProfileModal 

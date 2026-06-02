@@ -42,14 +42,13 @@ interface Props {
 
 const FEATURES = [
   {
-    col: "col-span-1 md:col-span-2",
+    col: "col-span-1",
     icon: Code2,
     iconBg: "bg-brand-cyan/10",
     iconColor: "text-brand-cyan",
     glow: "rgba(0,245,255,0.12)",
     title: "Multi-Language Submit",
     desc: "Paste or upload code in C++, Python, Java, Go, Rust, and more. Clean submit-only interface built for competitive programmers.",
-    large: true,
   },
   {
     col: "col-span-1",
@@ -68,16 +67,6 @@ const FEATURES = [
     glow: "rgba(255,107,0,0.12)",
     title: "Classroom Hubs",
     desc: "Strictly isolated learning environments with professional group management and access controls.",
-  },
-  {
-    col: "col-span-1 md:col-span-2",
-    icon: Globe2,
-    iconBg: "bg-amber-500/10",
-    iconColor: "text-amber-400",
-    glow: "rgba(245,158,11,0.12)",
-    title: "Community Translations",
-    desc: "Algorithmic problems localized implicitly. The community submits and moderates translations across global language vectors.",
-    large: true,
   },
 ];
 
@@ -112,19 +101,6 @@ export default function LandingClient({ user }: Props) {
             animate="show"
             className="flex flex-col items-center gap-8"
           >
-            {/* Badge */}
-            <motion.div variants={heroItem}>
-              <div className="inline-flex items-center gap-2 bg-brand-cyan/5 text-brand-cyan border border-brand-cyan/10 px-4 py-1.5 rounded-full text-[11px] font-mono font-bold uppercase tracking-widest shadow-[inset_0_1px_0_rgba(0,245,255,0.2)]">
-                <motion.span
-                  animate={{ opacity: [1, 0.4, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  <Zap className="w-3.5 h-3.5" />
-                </motion.span>
-                <span>CodeWorld LMS 2.0 Live</span>
-              </div>
-            </motion.div>
-
             {/* Headline */}
             <motion.h1
               variants={heroItem}
@@ -142,7 +118,7 @@ export default function LandingClient({ user }: Props) {
               variants={heroItem}
               className="text-lg md:text-2xl text-zinc-500 max-w-3xl leading-relaxed font-light tracking-wide"
             >
-              The ultimate LMS for competitive programming logic and execution. Master algorithms, compete in realtime classrooms, and submit translations across the globe.
+              The next-generation battleground for competitive programming.
             </motion.p>
 
             {/* CTA buttons */}
@@ -219,8 +195,8 @@ export default function LandingClient({ user }: Props) {
                       >
                         <Icon className="w-8 h-8" />
                       </motion.div>
-                      <h3 className={`font-bold text-white ${f.large ? "text-2xl" : "text-xl"}`}>{f.title}</h3>
-                      <p className={`text-zinc-400 leading-relaxed font-light ${f.large ? "max-w-md" : "text-sm"}`}>{f.desc}</p>
+                      <h3 className="font-bold text-white text-xl">{f.title}</h3>
+                      <p className="text-zinc-400 leading-relaxed font-light text-sm">{f.desc}</p>
                     </div>
                     {/* Bottom accent line */}
                     <div className="mt-8 h-px w-0 group-hover:w-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-all duration-700" />

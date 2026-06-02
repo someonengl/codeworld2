@@ -98,8 +98,8 @@ export default function TopicsClient({
 
       <div className="relative z-10 w-full max-w-7xl mx-auto px-8 py-12 flex-1">
         {/* Header */}
-        <header className="mb-12">
-          <div className="flex items-start justify-between gap-4 mb-6">
+        <header className="mb-8">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[11px] font-mono font-bold tracking-widest text-zinc-600 uppercase mb-3 flex items-center gap-2">
                 <Sparkles className="w-3.5 h-3.5 text-cyan-500" /> Learning Path
@@ -120,7 +120,7 @@ export default function TopicsClient({
             {isTeacher && (
               <button
                 onClick={() => setShowForm(!showForm)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all shrink-0 ${
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all shrink-0 cursor-pointer ${
                   showForm
                     ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
                     : "bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-900/30"
@@ -138,57 +138,57 @@ export default function TopicsClient({
               </button>
             )}
           </div>
-
-          {/* Search & Filters */}
-          <div className="flex flex-wrap items-center gap-3 mt-6">
-            <div className="relative flex-1 min-w-[250px] max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search topics..."
-                className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-cyan-500/40 transition-colors text-white placeholder:text-zinc-600"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              <Filter className="w-3.5 h-3.5 text-zinc-600" />
-              {difficultyOrder.map((d) => {
-                const colors = DIFFICULTY_COLORS[d];
-                const isActive = filterDifficulty === d;
-                return (
-                  <button
-                    key={d}
-                    onClick={() => setFilterDifficulty(isActive ? null : d)}
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all ${
-                      isActive
-                        ? `${colors.bg} ${colors.text} ${colors.border}`
-                        : "bg-white/[0.02] text-zinc-600 border-white/[0.04] hover:border-white/[0.08] hover:text-zinc-400"
-                    }`}
-                  >
-                    {d}
-                  </button>
-                );
-              })}
-            </div>
-
-            {allCategories.length > 1 && (
-              <select
-                value={filterCategory || ""}
-                onChange={(e) => setFilterCategory(e.target.value || null)}
-                className="bg-white/[0.02] border border-white/[0.06] rounded-xl px-3 py-2 text-[11px] outline-none text-zinc-400 focus:border-cyan-500/40"
-              >
-                <option value="">All Categories</option>
-                {allCategories.map((c: string) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
         </header>
+
+        {/* Lower Content Area: Search & Filters */}
+        <div className="mb-10 p-5 bg-white/[0.01] border border-white/[0.04] rounded-2xl flex flex-wrap items-center gap-4">
+          <div className="relative flex-1 min-w-[250px] max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search topics..."
+              className="w-full bg-[#050505] border border-white/[0.06] rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-cyan-500/40 transition-colors text-white placeholder:text-zinc-600"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <Filter className="w-3.5 h-3.5 text-zinc-600" />
+            {difficultyOrder.map((d) => {
+              const colors = DIFFICULTY_COLORS[d];
+              const isActive = filterDifficulty === d;
+              return (
+                <button
+                  key={d}
+                  onClick={() => setFilterDifficulty(isActive ? null : d)}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all cursor-pointer ${
+                    isActive
+                      ? `${colors.bg} ${colors.text} ${colors.border}`
+                      : "bg-white/[0.02] text-zinc-600 border-white/[0.04] hover:border-white/[0.08] hover:text-zinc-400"
+                  }`}
+                >
+                  {d}
+                </button>
+              );
+            })}
+          </div>
+
+          {allCategories.length > 1 && (
+            <select
+              value={filterCategory || ""}
+              onChange={(e) => setFilterCategory(e.target.value || null)}
+              className="bg-[#050505] border border-white/[0.06] rounded-xl px-3 py-2 text-[11px] outline-none text-zinc-400 focus:border-cyan-500/40 cursor-pointer"
+            >
+              <option value="">All Categories</option>
+              {allCategories.map((c: string) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
 
         {/* Create Topic Form */}
         {showForm && (

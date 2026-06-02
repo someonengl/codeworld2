@@ -119,7 +119,7 @@ export default function ProfileModal({ isOpen, onClose, currentUsername, email, 
           {!isEditing ? (
             <button
               onClick={() => setIsEditing(true)}
-              className="w-full flex items-center justify-center gap-2 text-sm font-medium text-zinc-500 hover:text-indigo-400 py-2.5 border border-white/[0.05] hover:border-indigo-500/30 hover:bg-indigo-500/5 rounded-xl transition-all"
+              className="w-full flex items-center justify-center gap-2 text-sm font-bold text-black bg-emerald-500 hover:bg-emerald-400 py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] cursor-pointer"
             >
               <Edit2 className="w-4 h-4" /> Change Username
             </button>
@@ -157,14 +157,14 @@ export default function ProfileModal({ isOpen, onClose, currentUsername, email, 
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="flex-1 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 font-medium py-2.5 rounded-xl transition-colors text-sm"
+                  className="flex-1 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 font-medium py-2.5 rounded-xl transition-colors text-sm cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving || usernameState !== "available"}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:bg-white/[0.05] disabled:text-zinc-600 text-white font-medium py-2.5 rounded-xl transition-all text-sm flex justify-center items-center gap-2"
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-400 disabled:bg-white/[0.02] disabled:text-zinc-700 disabled:border-white/[0.02] text-black font-bold py-2.5 rounded-xl transition-all text-sm flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.2)] disabled:shadow-none cursor-pointer"
                 >
                   {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
                 </button>

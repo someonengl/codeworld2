@@ -26,6 +26,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const { data: { user } } = await supabase.auth.getUser();
   const isOwner = user && user.id === profile.id;
   const role = profile.role || "Member";
+  const displayRole = role === "normal" ? "Student" : (role === "teacher" ? "Teacher" : role.charAt(0).toUpperCase() + role.slice(1));
 
   // Fetch stats safely
   const { count: solved } = await supabase
@@ -65,7 +66,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         {/* Top App Header / Bar */}
         <div className="flex flex-col md:flex-row gap-4 justify-between items-center px-8 py-5 border-b border-white/[0.08] animate-fade-in">
           <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-3">
-             Student Cabinet 
+             {displayRole} Cabinet 
              {profile.is_banned && <span className="text-[10px] bg-red-500/20 text-red-500 px-2 py-0.5 rounded-full border border-red-500/30 uppercase tracking-wider font-extrabold flex items-center gap-1"><AlertCircle className="w-3 h-3"/>SUSPENDED</span>}
           </h1>
           
@@ -79,11 +80,10 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
            <div className="xl:col-span-8 flex flex-col gap-8">
               
               {/* Stat Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                {[ 
                    { title: "Problems Solved", val: solved || 0 },
                    { title: "Code Submissions", val: totalSubmissions },
-                   { title: "Translations", val: translations || 0 },
                  ].map((s, i) => (
                     <div key={i} className="bg-white/[0.02] backdrop-blur-md border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] p-7 flex flex-col justify-between transition-all duration-500 hover:bg-white/[0.04] hover:border-white/[0.08] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_8px_16px_rgba(0,0,0,0.4)] hover:-translate-y-1.5 animate-fade-in group" style={{ borderRadius: '1.5rem', animationDelay: `${i * 100 + 100}ms` }}>
                       <p className="text-zinc-500 text-[11px] font-bold tracking-widest uppercase mb-6 whitespace-nowrap group-hover:text-zinc-400 transition-colors">{s.title}</p>
@@ -123,7 +123,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                  <div className="space-y-4 text-[13px] relative z-10 w-full mb-6">
                     <div className="flex justify-between items-center">
                        <span className="text-zinc-400 font-medium tracking-wide">Role</span>
-                       <span className="text-white font-semibold">{role}</span>
+                       <span className="text-white font-semibold">{displayRole}</span>
                     </div>
                     <div className="flex justify-between items-center">
                        <span className="text-zinc-400 font-medium tracking-wide">Joined Platform</span>
