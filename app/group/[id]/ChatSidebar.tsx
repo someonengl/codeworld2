@@ -175,7 +175,7 @@ export default function ChatSidebar({
                 <span className={`text-[11px] font-mono font-semibold ${isMe ? "text-blue-400" : "text-emerald-400"}`}>
                   {displayName(msg)}
                 </span>
-                <span className="text-[10px] text-zinc-700">{formatTime(msg.created_at)}</span>
+                <span className="text-[10px] text-zinc-700" suppressHydrationWarning>{formatTime(msg.created_at)}</span>
               </div>
 
               {/* Bubble */}

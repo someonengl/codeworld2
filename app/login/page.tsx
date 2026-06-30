@@ -20,10 +20,12 @@ export default function LoginPage() {
     setIsLoading(true);
     setErrorMsg("");
     
+    const resolvedEmail = email.includes("@") ? email : `${email.trim().toLowerCase()}@codeworld.local`;
+    
     // Slight artificial delay for UX feel of 'processing logic'
     setTimeout(async () => {
       const { error } = await supabase.auth.signInWithPassword({ 
-        email, 
+        email: resolvedEmail, 
         password 
       });
       
@@ -76,9 +78,9 @@ export default function LoginPage() {
             </motion.div>
           )}
 
-          {/* Username/Email Field */}
+          {/* Username Field */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest pl-1">Handle / Email</label>
+            <label className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest pl-1">Handle Identity</label>
             <div className="relative">
               <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 select-none">
                 <Terminal className="w-4 h-4" />
@@ -86,7 +88,7 @@ export default function LoginPage() {
               <input
                 id="username-or-email-input"
                 type="text"
-                placeholder="username or email"
+                placeholder="username"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

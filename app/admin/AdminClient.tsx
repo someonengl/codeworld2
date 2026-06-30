@@ -459,7 +459,7 @@ export default function AdminClient({ userId }: { userId: string }) {
                     </span>
                   </div>
                   <p className="text-[10px] text-zinc-500 mb-2 truncate">{ann.content}</p>
-                  <div className="text-[9px] text-zinc-600 tracking-tighter">
+                  <div className="text-[9px] text-zinc-600 tracking-tighter" suppressHydrationWarning>
                     {new Date(ann.created_at).toLocaleString()}
                   </div>
                 </div>

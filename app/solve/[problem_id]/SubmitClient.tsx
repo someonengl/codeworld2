@@ -593,7 +593,7 @@ export default function SubmitClient({
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-white">@{viewingCode.profiles.username}</h3>
-                  <p className="text-[10px] text-zinc-500">{new Date(viewingCode.created_at).toLocaleString()} · {viewingCode.status}</p>
+                  <p className="text-[10px] text-zinc-500" suppressHydrationWarning>{new Date(viewingCode.created_at).toLocaleString()} · {viewingCode.status}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -762,7 +762,7 @@ export default function SubmitClient({
                               ${(sub.status === 'AC' || sub.status === 'Accepted') ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
                               {(sub.status === 'AC' || sub.status === 'Accepted') ? 'AC' : sub.status}
                             </span>
-                            <span className="text-[10px] text-zinc-400 font-mono">
+                            <span className="text-[10px] text-zinc-400 font-mono" suppressHydrationWarning>
                               {new Date(sub.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
@@ -799,7 +799,7 @@ export default function SubmitClient({
                           ${(sub.status === 'AC' || sub.status === 'Accepted') ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
                           {(sub.status === 'AC' || sub.status === 'Accepted') ? 'AC' : sub.status}
                         </span>
-                        <span className="text-[10px] text-zinc-400 font-mono">
+                        <span className="text-[10px] text-zinc-400 font-mono" suppressHydrationWarning>
                           {new Date(sub.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>

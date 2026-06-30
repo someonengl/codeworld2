@@ -101,7 +101,7 @@ export default function AnnouncementPanel({ initialAnnouncements }: { initialAnn
               <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap">
                 {ann.content}
               </p>
-              <div className="mt-2 text-[10px] font-mono text-zinc-500 uppercase tracking-tighter">
+              <div className="mt-2 text-[10px] font-mono text-zinc-500 uppercase tracking-tighter" suppressHydrationWarning>
                 Published {new Date(ann.created_at).toLocaleDateString()}
               </div>
             </div>

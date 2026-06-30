@@ -62,7 +62,7 @@ export default function TopicDetailClient({ topic }: { topic: any }) {
               <User className="w-3 h-3" />
               {topic.profiles?.username || topic.profiles?.full_name || "Unknown"}
             </span>
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5" suppressHydrationWarning>
               <Calendar className="w-3 h-3" />
               {new Date(topic.created_at).toLocaleDateString()}
             </span>
